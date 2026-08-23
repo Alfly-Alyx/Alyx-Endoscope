@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Alyx.Atelier" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFFF7A1A</item>
+        <item name="colorPrimaryVariant">#FF11161A</item>
+        <item name="colorSecondary">#FFFF7A1A</item>
+        <item name="colorSurface">#FF151A1E</item>
+        <item name="colorOnSurface">#FFF5F6F7</item>
+        <item name="android:colorBackground">#FF0B0E10</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="Theme.Alyx.Visee" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFFF6500</item>
+        <item name="colorPrimaryVariant">#FF050607</item>
+        <item name="colorSecondary">#FFFF6500</item>
+        <item name="colorSurface">#FF15191C</item>
+        <item name="colorOnSurface">#FFF7F7F7</item>
+        <item name="android:colorBackground">#FF030506</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="Theme.Alyx.Workshop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#FFFF8A3D</item>
+        <item name="colorPrimaryVariant">#FF8F3B00</item>
+        <item name="colorSecondary">#FFFF8A3D</item>
+        <item name="colorSurface">#FF211B17</item>
+        <item name="colorOnSurface">#FFFFEDE2</item>
+        <item name="android:colorBackground">#FF17120F</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

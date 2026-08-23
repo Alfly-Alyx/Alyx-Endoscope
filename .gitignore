@@ -1,0 +1,29 @@
+# Android Studio / IntelliJ
+*.iml
+.idea/
+
+# Gradle et sorties de compilation
+.gradle/
+**/build/
+*.apk
+*.aab
+*.ap_
+
+# Configuration locale
+local.properties
+
+# Outils Android natifs
+.externalNativeBuild/
+.cxx/
+captures/
+.tags*
+
+# Fichiers système et outils locaux
+.DS_Store
+.codex/
+.agents/
+
+# Livrables et références de conception conservés localement
+builds-definitifs/
+propositions-interface/
+icones-proposees/

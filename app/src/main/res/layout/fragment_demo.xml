@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <View
+        android:id="@+id/headerBg"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:background="?android:attr/colorBackground"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/headerLogoIv"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="14dp"
+        android:contentDescription="@string/app_name"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_empty_state_logo"
+        app:shapeAppearanceOverlay="@style/AlyxCircleShape"
+        app:layout_constraintBottom_toBottomOf="@id/headerBg"
+        app:layout_constraintStart_toStartOf="@id/headerBg"
+        app:layout_constraintTop_toTopOf="@id/headerBg" />
+
+    <TextView
+        android:id="@+id/headerTitleTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/app_name"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="22sp"
+        app:layout_constraintBottom_toBottomOf="@id/headerBg"
+        app:layout_constraintStart_toEndOf="@id/headerLogoIv"
+        app:layout_constraintTop_toTopOf="@id/headerBg" />
+
+    <ImageView
+        android:id="@+id/headerSettingsBtn"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginEnd="14dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/choose_theme"
+        android:padding="10dp"
+        android:src="@drawable/ic_palette"
+        android:tint="?attr/colorOnSurface"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/headerBg"
+        app:layout_constraintEnd_toEndOf="@id/headerBg"
+        app:layout_constraintTop_toTopOf="@id/headerBg" />
+
+    <FrameLayout
+        android:id="@+id/cameraViewContainer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorSurface"
+        app:layout_constraintBottom_toTopOf="@+id/modeSwitchLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toolbarBg"/>
+
+    <TextView
+        android:id="@+id/cameraStatusTv"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:text="@string/camera_disconnected"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="13sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@id/cameraViewContainer"
+        app:layout_constraintStart_toStartOf="@id/cameraViewContainer"
+        app:layout_constraintTop_toTopOf="@id/cameraViewContainer" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/uvcLogoIv"
+        android:layout_width="132dp"
+        android:layout_height="132dp"
+        android:contentDescription="@string/app_name"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_empty_state_logo"
+        android:visibility="visible"
+        app:shapeAppearanceOverlay="@style/AlyxCircleShape"
+        app:strokeColor="?attr/colorSurface"
+        app:strokeWidth="9dp"
+        app:layout_constraintBottom_toTopOf="@id/emptyCameraTitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/cameraViewContainer"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <TextView
+        android:id="@+id/emptyCameraTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="sans-serif-medium"
+        android:text="@string/app_name"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="22sp"
+        app:layout_constraintBottom_toTopOf="@id/emptyCameraSubtitle"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/uvcLogoIv" />
+
+    <TextView
+        android:id="@+id/emptyCameraSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/connect_usb_camera"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="15sp"
+        android:alpha="0.72"
+        app:layout_constraintBottom_toBottomOf="@id/cameraViewContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/emptyCameraTitle" />
+
+    <View
+        android:id="@+id/toolbarBg"
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
+        android:background="?attr/colorSurface"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerBg" />
+
+    <View
+        android:id="@+id/folderActionCard"
+        android:layout_width="76dp"
+        android:layout_height="86dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/settingsBtn"
+        app:layout_constraintStart_toStartOf="@id/settingsBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <View
+        android:id="@+id/cameraActionCard"
+        android:layout_width="76dp"
+        android:layout_height="86dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/cameraTypeBtn"
+        app:layout_constraintStart_toStartOf="@id/cameraTypeBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <View
+        android:id="@+id/themeActionCard"
+        android:layout_width="76dp"
+        android:layout_height="86dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/themeBtn"
+        app:layout_constraintStart_toStartOf="@id/themeBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <View
+        android:id="@+id/resolutionActionCard"
+        android:layout_width="76dp"
+        android:layout_height="86dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/resolutionBtn"
+        app:layout_constraintStart_toStartOf="@id/resolutionBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <ImageView
+        android:id="@+id/settingsBtn"
+        style="@style/Camera2TopButtonStyle"
+        android:contentDescription="@string/choose_media_folder"
+        android:src="@mipmap/camera_album_white"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/settingsLabelTv"
+        app:layout_constraintEnd_toStartOf="@id/cameraTypeBtn"
+        app:layout_constraintHorizontal_chainStyle="spread"
+        app:layout_constraintStart_toStartOf="@id/toolbarBg"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <ImageView
+        android:id="@+id/cameraTypeBtn"
+        style="@style/Camera2TopButtonStyle"
+        android:contentDescription="@string/choose_camera"
+        android:src="@drawable/ic_camera_selector"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/cameraLabelTv"
+        app:layout_constraintEnd_toStartOf="@id/themeBtn"
+        app:layout_constraintStart_toEndOf="@id/settingsBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg"/>
+
+    <ImageView
+        android:id="@+id/themeBtn"
+        style="@style/Camera2TopButtonStyle"
+        android:contentDescription="@string/choose_theme"
+        android:src="@drawable/ic_palette"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/themeLabelTv"
+        app:layout_constraintEnd_toStartOf="@id/resolutionBtn"
+        app:layout_constraintStart_toEndOf="@id/cameraTypeBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <ImageView
+        android:id="@+id/resolutionBtn"
+        style="@style/Camera2TopButtonStyle"
+        android:contentDescription="@string/resolution_title"
+        android:src="@mipmap/camera_resolution"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/resolutionLabelTv"
+        app:layout_constraintEnd_toEndOf="@id/toolbarBg"
+        app:layout_constraintStart_toEndOf="@id/themeBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <TextView
+        android:id="@+id/settingsLabelTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="@string/folder_short"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/settingsBtn"
+        app:layout_constraintStart_toStartOf="@id/settingsBtn" />
+
+    <TextView
+        android:id="@+id/cameraLabelTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="@string/camera_short"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/cameraTypeBtn"
+        app:layout_constraintStart_toStartOf="@id/cameraTypeBtn" />
+
+    <TextView
+        android:id="@+id/themeLabelTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="@string/theme_short"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/themeBtn"
+        app:layout_constraintStart_toStartOf="@id/themeBtn" />
+
+    <TextView
+        android:id="@+id/resolutionLabelTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="@string/resolution"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/resolutionBtn"
+        app:layout_constraintStart_toStartOf="@id/resolutionBtn" />
+
+    <androidx.constraintlayout.widget.Barrier
+        android:id="@+id/toolbarBottomBarrier"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:barrierDirection="bottom"
+        app:constraint_referenced_ids="settingsLabelTv,cameraLabelTv,themeLabelTv,resolutionLabelTv" />
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/toolbarGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:constraint_referenced_ids="toolbarBottomBarrier,folderActionCard,cameraActionCard,themeActionCard,resolutionActionCard,settingsBtn,cameraTypeBtn,themeBtn,resolutionBtn,settingsLabelTv,cameraLabelTv,themeLabelTv,resolutionLabelTv"/>
+
+    <View
+        android:id="@+id/controlPanelLayout"
+        android:layout_width="0dp"
+        android:layout_height="180dp"
+        android:background="?attr/colorSurface"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <com.jiangdg.ausbc.widget.CaptureMediaView
+        android:id="@+id/captureBtn"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        app:layout_constraintBottom_toBottomOf="@+id/controlPanelLayout"
+        app:layout_constraintEnd_toEndOf="@id/controlPanelLayout"
+        app:layout_constraintStart_toStartOf="@id/controlPanelLayout"
+        app:layout_constraintTop_toBottomOf="@+id/modeSwitchLayout" />
+
+    <com.jiangdg.ausbc.widget.PreviewImageView
+        android:id="@+id/albumPreviewIv"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:scaleType="centerCrop"
+        android:src="@mipmap/camera_album_white"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toBottomOf="@+id/captureBtn"
+        app:layout_constraintEnd_toStartOf="@+id/captureBtn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/captureBtn" />
+
+    <ImageView
+        android:id="@+id/lensFacingBtn1"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:scaleType="centerCrop"
+        android:src="@mipmap/camera_switch"
+        android:tint="?attr/colorOnSurface"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/captureBtn"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/captureBtn"
+        app:layout_constraintTop_toTopOf="@+id/captureBtn" />
+
+    <ViewStub
+        android:id="@+id/takePictureTipViewStub"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout="@layout/layout_tip_view"
+        app:layout_constraintBottom_toTopOf="@+id/controlPanelLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/toolbarBg" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/modeSwitchLayout"
+        android:layout_width="0dp"
+        android:layout_height="54dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        app:layout_constraintEnd_toEndOf="@+id/controlPanelLayout"
+        app:layout_constraintStart_toStartOf="@+id/controlPanelLayout"
+        app:layout_constraintTop_toTopOf="@+id/controlPanelLayout">
+
+        <TextView
+            android:id="@+id/takePictureModeTv"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:drawableTop="@drawable/ic_mode_photo"
+            android:drawablePadding="3dp"
+            android:gravity="center"
+            android:text="@string/photo"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/recordVideoModeTv"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/recordVideoModeTv"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:drawableTop="@drawable/ic_mode_video"
+            android:drawablePadding="3dp"
+            android:gravity="center"
+            android:text="@string/video"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/takePictureModeTv"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <View
+            android:id="@+id/photoVideoDivider"
+            android:layout_width="1dp"
+            android:layout_height="34dp"
+            android:background="?attr/colorOnSurface"
+            android:alpha="0.12"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/takePictureModeTv"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/recTimerLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/controlPanelLayout"
+        app:layout_constraintStart_toStartOf="@+id/controlPanelLayout"
+        app:layout_constraintTop_toTopOf="@+id/controlPanelLayout">
+
+        <ImageView
+            android:id="@+id/recStateIv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/camera_rec_red_point"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/recTimeTv"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/recTimeTv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:gravity="center"
+            android:text="00:00"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/recStateIv"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <TextView
+        android:id="@+id/frameRateTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:textColor="?attr/colorOnSurface"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/cameraViewContainer" />
+
+    <SeekBar
+        android:id="@+id/brightnessSb"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="40dp"
+        android:layout_marginEnd="40dp"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@+id/controlPanelLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

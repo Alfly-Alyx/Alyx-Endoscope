@@ -1,0 +1,43 @@
+<resources>
+    <string name="app_name" translatable="false">Alyx Endoscope</string>
+    <string name="permission_tip">L’autorisation a été refusée. Ouvrez les paramètres de l’application pour l’accorder.</string>
+    <string name="resolution">Résolution</string>
+    <string name="filters">Filtres</string>
+    <string name="animations">Animations</string>
+    <string name="photo">Photo</string>
+    <string name="video">Vidéo</string>
+    <string name="no_uvc_camera">AUCUNE CAMÉRA UVC</string>
+    <string name="frame_rate">Fréquence : %1$d ips</string>
+    <string name="camera_open_error">Erreur d’ouverture de la caméra : %1$s</string>
+    <string name="camera_closed">Caméra fermée</string>
+    <string name="camera_opened">Caméra ouverte</string>
+    <string name="camera_not_working">La caméra ne fonctionne pas.</string>
+    <string name="unknown_error">Erreur inconnue</string>
+    <string name="usb_device_error">Impossible d’accéder au périphérique USB.</string>
+    <string name="effect_error">Impossible d’appliquer l’effet.</string>
+    <string name="preview_size_error">Impossible d’obtenir la résolution d’aperçu.</string>
+    <string name="open_error">Erreur d’ouverture : %1$s</string>
+    <string name="capture_image_error">Échec de la capture photo.</string>
+    <string name="capture_image_success">Photo enregistrée.</string>
+    <string name="capture_video_error">Échec de l’enregistrement vidéo.</string>
+    <string name="capture_video_success">Vidéo enregistrée.</string>
+    <string name="choose_media_folder">Choisir le dossier d’enregistrement</string>
+    <string name="media_folder_selected">Dossier d’enregistrement : %1$s</string>
+    <string name="media_folder_error">Impossible d’écrire dans le dossier sélectionné.</string>
+    <string name="media_saved">Média enregistré dans %1$s</string>
+    <string name="resolution_title">Résolution de la caméra</string>
+    <string name="choose_camera">Choisir la caméra</string>
+    <string name="choose_theme">Choisir l’apparence</string>
+    <string name="folder_short">Dossier</string>
+    <string name="camera_short">Caméra</string>
+    <string name="theme_short">Thème</string>
+    <string name="camera_disconnected">●  Caméra non connectée</string>
+    <string name="camera_connected">●  Caméra connectée</string>
+    <string name="theme_title">Apparence de l’application</string>
+    <string name="theme_atelier">Atelier</string>
+    <string name="theme_visee">Visée</string>
+    <string name="theme_workshop">Workshop</string>
+    <string name="theme_applied">Thème « %1$s » appliqué</string>
+    <string name="connect_usb_camera">Connectez une caméra USB</string>
+    <string name="connect_usb_endoscope">Branchez votre endoscope USB</string>
+</resources>
