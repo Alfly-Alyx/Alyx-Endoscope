@@ -11,17 +11,6 @@
         <item name="android:windowLightNavigationBar">false</item>
     </style>
 
-    <style name="Theme.Alyx.Visee" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#FFFF6500</item>
-        <item name="colorPrimaryVariant">#FF050607</item>
-        <item name="colorSecondary">#FFFF6500</item>
-        <item name="colorSurface">#FF15191C</item>
-        <item name="colorOnSurface">#FFF7F7F7</item>
-        <item name="android:colorBackground">#FF030506</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
-    </style>
-
     <style name="Theme.Alyx.Workshop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">#FFFF8A3D</item>
         <item name="colorPrimaryVariant">#FF8F3B00</item>

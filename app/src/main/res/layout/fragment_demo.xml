@@ -67,21 +67,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbarBg"/>
 
-    <TextView
-        android:id="@+id/cameraStatusTv"
-        android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:gravity="center"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/camera_disconnected"
-        android:textColor="?attr/colorOnSurface"
-        android:textSize="13sp"
-        android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="@id/cameraViewContainer"
-        app:layout_constraintStart_toStartOf="@id/cameraViewContainer"
-        app:layout_constraintTop_toTopOf="@id/cameraViewContainer" />
-
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/uvcLogoIv"
         android:layout_width="132dp"
@@ -176,6 +161,16 @@
         app:layout_constraintStart_toStartOf="@id/resolutionBtn"
         app:layout_constraintTop_toTopOf="@id/toolbarBg" />
 
+    <View
+        android:id="@+id/commentActionCard"
+        android:layout_width="64dp"
+        android:layout_height="70dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/atelierCommentBtn"
+        app:layout_constraintStart_toStartOf="@id/atelierCommentBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
     <ImageView
         android:id="@+id/settingsBtn"
         style="@style/Camera2TopButtonStyle"
@@ -217,8 +212,19 @@
         android:src="@mipmap/camera_resolution"
         android:tint="?attr/colorOnSurface"
         app:layout_constraintBottom_toTopOf="@id/resolutionLabelTv"
-        app:layout_constraintEnd_toEndOf="@id/toolbarBg"
+        app:layout_constraintEnd_toStartOf="@id/atelierCommentBtn"
         app:layout_constraintStart_toEndOf="@id/themeBtn"
+        app:layout_constraintTop_toTopOf="@id/toolbarBg" />
+
+    <ImageView
+        android:id="@+id/atelierCommentBtn"
+        style="@style/Camera2TopButtonStyle"
+        android:contentDescription="@string/add_capture_comment"
+        android:src="@drawable/ic_comment_alyx"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toTopOf="@id/atelierCommentLabelTv"
+        app:layout_constraintEnd_toEndOf="@id/toolbarBg"
+        app:layout_constraintStart_toEndOf="@id/resolutionBtn"
         app:layout_constraintTop_toTopOf="@id/toolbarBg" />
 
     <TextView
@@ -269,18 +275,37 @@
         app:layout_constraintEnd_toEndOf="@id/resolutionBtn"
         app:layout_constraintStart_toStartOf="@id/resolutionBtn" />
 
+    <TextView
+        android:id="@+id/atelierCommentLabelTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="5dp"
+        android:text="@string/comment_short_compact"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="@id/toolbarBg"
+        app:layout_constraintEnd_toEndOf="@id/atelierCommentBtn"
+        app:layout_constraintStart_toStartOf="@id/atelierCommentBtn" />
+
     <androidx.constraintlayout.widget.Barrier
         android:id="@+id/toolbarBottomBarrier"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:barrierDirection="bottom"
-        app:constraint_referenced_ids="settingsLabelTv,cameraLabelTv,themeLabelTv,resolutionLabelTv" />
+        app:constraint_referenced_ids="settingsLabelTv,cameraLabelTv,themeLabelTv,resolutionLabelTv,atelierCommentLabelTv" />
 
     <androidx.constraintlayout.widget.Group
         android:id="@+id/toolbarGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:constraint_referenced_ids="toolbarBottomBarrier,folderActionCard,cameraActionCard,themeActionCard,resolutionActionCard,settingsBtn,cameraTypeBtn,themeBtn,resolutionBtn,settingsLabelTv,cameraLabelTv,themeLabelTv,resolutionLabelTv"/>
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/atelierCommentGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="commentActionCard,atelierCommentBtn,atelierCommentLabelTv" />
 
     <View
         android:id="@+id/controlPanelLayout"
@@ -295,6 +320,7 @@
         android:id="@+id/captureBtn"
         android:layout_width="76dp"
         android:layout_height="76dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/controlPanelLayout"
         app:layout_constraintEnd_toEndOf="@id/controlPanelLayout"
         app:layout_constraintStart_toStartOf="@id/controlPanelLayout"
@@ -307,10 +333,25 @@
         android:scaleType="centerCrop"
         android:src="@mipmap/camera_album_white"
         android:tint="?attr/colorOnSurface"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@+id/captureBtn"
         app:layout_constraintEnd_toStartOf="@+id/captureBtn"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/captureBtn" />
+
+    <ImageButton
+        android:id="@+id/galleryBtn"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/open_alyx_gallery"
+        android:padding="18dp"
+        android:src="@drawable/ic_gallery_alyx"
+        android:tint="?attr/colorOnSurface"
+        app:layout_constraintBottom_toBottomOf="@+id/controlPanelLayout"
+        app:layout_constraintEnd_toEndOf="@id/controlPanelLayout"
+        app:layout_constraintStart_toStartOf="@id/controlPanelLayout"
+        app:layout_constraintTop_toBottomOf="@+id/modeSwitchLayout" />
 
     <ImageView
         android:id="@+id/lensFacingBtn1"

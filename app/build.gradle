@@ -7,7 +7,7 @@ android {
     namespace = "com.jiangdg.demo"
     compileSdkVersion rootProject.ext.versionCompiler
     defaultConfig {
-        applicationId "com.jiangdg.ausbc"
+        applicationId "com.alyx.endoscope"
         minSdkVersion rootProject.ext.minSdkVersion  // Utilisation de la variable
         targetSdkVersion rootProject.ext.versionTarget  // Utilisation de la variable
         compileSdkVersion rootProject.ext.versionCompiler  // Utilisation de la variable
@@ -62,7 +62,4 @@ dependencies {
     // For debug online
     implementation project(':libausbc')
     implementation files('../libnative/aar/libnative-3.2.9.aar')
-
-    // demo
-    // implementation 'com.github.jiangdongguo.AndroidUSBCamera:libausbc:3.3.3'
 }

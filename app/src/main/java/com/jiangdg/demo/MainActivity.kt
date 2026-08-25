@@ -19,6 +19,7 @@ import android.Manifest.permission.*
 import android.os.Bundle
 import android.os.Build
 import android.os.PowerManager
+import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.PermissionChecker
@@ -42,7 +43,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(resolveAppearanceTheme())
+        setTheme(resolveAppearanceTheme(this))
         super.onCreate(savedInstanceState)
         setStatusBar()
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
@@ -134,13 +135,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolveAppearanceTheme(): Int {
-        return when (getSharedPreferences(APPEARANCE_PREFS, MODE_PRIVATE)
-            .getInt(KEY_APPEARANCE, APPEARANCE_ATELIER)) {
-            APPEARANCE_VISEE -> R.style.Theme_Alyx_Visee
-            APPEARANCE_WORKSHOP -> R.style.Theme_Alyx_Workshop
-            else -> R.style.Theme_Alyx_Atelier
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_CAMERA &&
+            event.action == KeyEvent.ACTION_DOWN &&
+            event.repeatCount == 0
+        ) {
+            val demoFragment = supportFragmentManager
+                .findFragmentById(R.id.fragment_container) as? DemoFragment
+            if (demoFragment?.requestHardwareCapture() == true) return true
         }
+        return super.dispatchKeyEvent(event)
     }
 
     private fun applySystemBarInsets() {
@@ -160,7 +164,18 @@ class MainActivity : AppCompatActivity() {
         const val APPEARANCE_PREFS = "appearance"
         const val KEY_APPEARANCE = "selected_appearance"
         const val APPEARANCE_ATELIER = 0
-        const val APPEARANCE_VISEE = 1
         const val APPEARANCE_WORKSHOP = 2
+
+        fun resolveAppearanceTheme(context: android.content.Context): Int {
+            val preferences = context.getSharedPreferences(APPEARANCE_PREFS, android.content.Context.MODE_PRIVATE)
+            return when (preferences.getInt(KEY_APPEARANCE, APPEARANCE_ATELIER)) {
+                APPEARANCE_WORKSHOP -> R.style.Theme_Alyx_Workshop
+                APPEARANCE_ATELIER -> R.style.Theme_Alyx_Atelier
+                else -> {
+                    preferences.edit().putInt(KEY_APPEARANCE, APPEARANCE_ATELIER).apply()
+                    R.style.Theme_Alyx_Atelier
+                }
+            }
+        }
     }
 }

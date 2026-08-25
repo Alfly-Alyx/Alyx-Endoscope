@@ -1,6 +1,6 @@
 # Alyx Endoscope
 
-Alyx Endoscope est une application Android destinée à l'utilisation d'endoscopes et de caméras USB compatibles UVC. La version **0.9** privilégie une interface simple, lisible et adaptée automatiquement au thème clair ou sombre du système.
+Alyx Endoscope est une application Android destinée à l'utilisation d'endoscopes et de caméras USB compatibles UVC. La version **0.10.1** privilégie une interface simple, lisible et adaptée automatiquement au thème clair ou sombre du système.
 
 ## Fonctionnalités
 
@@ -8,7 +8,10 @@ Alyx Endoscope est une application Android destinée à l'utilisation d'endoscop
 - prise de photos et enregistrement vidéo, sans mode audio ;
 - choix de la caméra depuis l'icône dédiée de la barre supérieure ;
 - sélection de la résolution et du dossier de destination ;
-- trois interfaces sélectionnables : **Atelier**, **Visée** et **Workshop** ;
+- deux interfaces sélectionnables : **Atelier** et **Workshop** ;
+- prise de photo ou démarrage/arrêt d’une vidéo depuis le bouton physique des endoscopes UVC compatibles ;
+- incrustation jaune de la date, de l’heure et d’un commentaire dans les captures ;
+- galerie dédiée aux clichés Endoscope avec commentaires modifiables ;
 - adaptation automatique au thème clair ou sombre du système ;
 - prise en charge des appareils `armeabi-v7a` et `arm64-v8a`.
 

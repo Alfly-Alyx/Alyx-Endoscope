@@ -15,11 +15,10 @@
  */
 package com.jiangdg.ausbc.camera
 
-import android.content.ContentValues
 import android.content.Context
 import android.graphics.SurfaceTexture
 import android.hardware.usb.UsbDevice
-import android.provider.MediaStore
+import android.media.MediaScannerConnection
 import android.view.Surface
 import android.view.SurfaceView
 import android.view.TextureView
@@ -35,6 +34,7 @@ import com.jiangdg.ausbc.utils.CameraUtils
 import com.jiangdg.ausbc.utils.Logger
 import com.jiangdg.ausbc.utils.MediaUtils
 import com.jiangdg.ausbc.utils.Utils
+import com.jiangdg.uvc.IButtonCallback
 import com.jiangdg.uvc.IFrameCallback
 import com.jiangdg.uvc.UVCCamera
 import java.io.File
@@ -46,6 +46,11 @@ import java.util.concurrent.TimeUnit
  */
 class CameraUVC(ctx: Context, device: UsbDevice) : MultiCameraClient.ICamera(ctx, device) {
     private var mUvcCamera: UVCCamera? = null
+    @Volatile
+    private var mHardwareButtonCallback: ((button: Int, state: Int) -> Unit)? = null
+    private val uvcButtonCallback = IButtonCallback { button, state ->
+        mHardwareButtonCallback?.invoke(button, state)
+    }
     private val mCameraPreviewSize by lazy {
         arrayListOf<PreviewSize>()
     }
@@ -123,6 +128,7 @@ class CameraUVC(ctx: Context, device: UsbDevice) : MultiCameraClient.ICamera(ctx
         try {
             mUvcCamera = UVCCamera().apply {
                 open(mCtrlBlock)
+                setButtonCallback(uvcButtonCallback)
             }
         } catch (e: Exception) {
             closeCamera()
@@ -267,7 +273,6 @@ class CameraUVC(ctx: Context, device: UsbDevice) : MultiCameraClient.ICamera(ctx
             val title = savePath ?: "IMG_AUSBC_$date"
             val displayName = savePath ?: "$title.jpg"
             val path = savePath ?: "$mCameraDir/$displayName"
-            val location = Utils.getGpsLocation(ctx)
             val width = mCameraRequest!!.previewWidth
             val height = mCameraRequest!!.previewHeight
             val ret = MediaUtils.saveYuv2Jpeg(path, data, width, height)
@@ -282,14 +287,9 @@ class CameraUVC(ctx: Context, device: UsbDevice) : MultiCameraClient.ICamera(ctx
                 Logger.w(TAG, "save yuv to jpeg failed.")
                 return@submit
             }
-            val values = ContentValues()
-            values.put(MediaStore.Images.ImageColumns.TITLE, title)
-            values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, displayName)
-            values.put(MediaStore.Images.ImageColumns.DATA, path)
-            values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, date)
-            values.put(MediaStore.Images.ImageColumns.LONGITUDE, location?.longitude)
-            values.put(MediaStore.Images.ImageColumns.LATITUDE, location?.latitude)
-            ctx.contentResolver?.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            if (savePath == null) {
+                MediaScannerConnection.scanFile(ctx, arrayOf(path), arrayOf("image/jpeg"), null)
+            }
             mMainHandler.post {
                 callback.onComplete(path)
             }
@@ -313,6 +313,16 @@ class CameraUVC(ctx: Context, device: UsbDevice) : MultiCameraClient.ICamera(ctx
         mCameraHandler?.post {
             mUvcCamera?.sendCommand(command)
         }
+    }
+
+    /**
+     * Receive physical shutter events reported by the UVC status endpoint.
+     *
+     * The Android input device disappears once libusb claims the camera, so
+     * KEYCODE_CAMERA alone cannot handle buttons integrated into UVC devices.
+     */
+    fun setHardwareButtonCallback(callback: ((button: Int, state: Int) -> Unit)?) {
+        mHardwareButtonCallback = callback
     }
 
     /**

@@ -27,21 +27,19 @@ import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.drawable.GradientDrawable
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import android.graphics.Typeface
 import android.hardware.usb.UsbDevice
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import android.widget.EditText
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.children
 import androidx.core.widget.TextViewCompat
@@ -61,6 +59,7 @@ import com.jiangdg.ausbc.callback.ICaptureCallBack
 import com.jiangdg.ausbc.camera.CameraUVC
 import com.jiangdg.ausbc.render.effect.EffectBlackWhite
 import com.jiangdg.ausbc.render.effect.EffectSoul
+import com.jiangdg.ausbc.render.effect.EffectTimestamp
 import com.jiangdg.ausbc.render.effect.EffectZoom
 import com.jiangdg.ausbc.render.effect.bean.CameraEffect
 import com.jiangdg.ausbc.utils.*
@@ -87,6 +86,10 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     private var mRecSeconds = 0
     private var mRecMinute = 0
     private var mRecHours = 0
+    private var mTimestampEffect: EffectTimestamp? = null
+    private var mVideoCapturedAt = 0L
+    private var mVideoComment = ""
+    private var mCaptureComment = ""
 
     private val folderPicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@registerForActivityResult
@@ -155,8 +158,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 }
                 WHAT_STOP_TIMER -> {
                     mViewBinding.modeSwitchLayout.visibility = View.VISIBLE
-                    mViewBinding.toolbarGroup.visibility = View.VISIBLE
-                    mViewBinding.albumPreviewIv.visibility = View.VISIBLE
+                    setToolbarVisibility(true)
                     mViewBinding.recTimerLayout.visibility = View.GONE
                     mViewBinding.recTimeTv.text = calculateTime(0, 0)
                 }
@@ -171,6 +173,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
     override fun initView() {
         super.initView()
+        mCaptureComment = requireContext().getSharedPreferences(COMMENT_PREFS, 0)
+            .getString(KEY_CAPTURE_COMMENT, "").orEmpty()
         applySelectedAppearance()
         mViewBinding.cameraTypeBtn.setOnClickListener(this)
         mViewBinding.settingsBtn.setOnClickListener(this)
@@ -178,11 +182,13 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.headerSettingsBtn.setOnClickListener(this)
         mViewBinding.resolutionBtn.setOnClickListener(this)
         mViewBinding.albumPreviewIv.setOnClickListener(this)
+        mViewBinding.galleryBtn.setOnClickListener(this)
+        mViewBinding.atelierCommentBtn.setOnClickListener(this)
         mViewBinding.captureBtn.setOnViewClickListener(this)
         switchLayoutClick()
     }
 
-    /** Rend les trois apparences réellement distinctes, au-delà de la palette DayNight. */
+    /** Rend les deux apparences réellement distinctes, au-delà de la palette DayNight. */
     private fun applySelectedAppearance() {
         val context = requireContext()
         val selected = context.getSharedPreferences(MainActivity.APPEARANCE_PREFS, 0)
@@ -190,10 +196,9 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         val surface = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorSurface)
         val accent = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorPrimary)
         val onSurface = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorOnSurface)
-        val outline = ColorUtils.setAlphaComponent(onSurface, if (selected == MainActivity.APPEARANCE_VISEE) 90 else 38)
+        val outline = ColorUtils.setAlphaComponent(onSurface, 38)
         val density = resources.displayMetrics.density
         val (cornerDp, marginDp, strokeDp) = when (selected) {
-            MainActivity.APPEARANCE_VISEE -> Triple(30f, 16, 1.5f)
             MainActivity.APPEARANCE_WORKSHOP -> Triple(24f, 20, 1f)
             else -> Triple(16f, 10, 1f)
         }
@@ -223,77 +228,28 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             MaterialColors.getColor(mViewBinding.root, android.R.attr.colorBackground)
         )
 
-        val appTitle = getString(R.string.app_name)
-        mViewBinding.headerTitleTv.text = if (selected == MainActivity.APPEARANCE_VISEE) {
-            SpannableString(appTitle).apply {
-                setSpan(
-                    ForegroundColorSpan(accent), 0,
-                    appTitle.indexOf(' ').takeIf { it > 0 } ?: appTitle.length,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-        } else appTitle
-
-        val visee = selected == MainActivity.APPEARANCE_VISEE
+        mViewBinding.headerTitleTv.text = getString(R.string.app_name)
         val workshop = selected == MainActivity.APPEARANCE_WORKSHOP
-        mViewBinding.cameraStatusTv.visibility = if (visee) View.VISIBLE else View.GONE
-        if (visee) {
-            mViewBinding.cameraStatusTv.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 22f * density
-                setColor(ColorUtils.setAlphaComponent(surface, 238))
-                setStroke(density.toInt().coerceAtLeast(1), outline)
-            }
-            setViseeCameraStatusText(false)
-        }
         val regularTint = ColorStateList.valueOf(onSurface)
         val accentTint = ColorStateList.valueOf(accent)
-        mViewBinding.settingsBtn.imageTintList = if (visee || workshop) accentTint else regularTint
+        mViewBinding.settingsBtn.imageTintList = if (workshop) accentTint else regularTint
         mViewBinding.cameraTypeBtn.imageTintList = if (workshop) accentTint else regularTint
-        mViewBinding.themeBtn.imageTintList = if (visee || workshop) accentTint else regularTint
-        mViewBinding.resolutionBtn.imageTintList = if (visee || workshop) accentTint else regularTint
+        mViewBinding.themeBtn.imageTintList = if (workshop) accentTint else regularTint
+        mViewBinding.resolutionBtn.imageTintList = if (workshop) accentTint else regularTint
+        mViewBinding.galleryBtn.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(surface)
+            setStroke(density.toInt().coerceAtLeast(1), outline)
+        }
+        mViewBinding.galleryBtn.imageTintList = accentTint
+        val galleryPadding = (18 * density).toInt()
+        mViewBinding.galleryBtn.setPadding(galleryPadding, galleryPadding, galleryPadding, galleryPadding)
 
-        if (visee) {
-            val actionSurface = ColorUtils.blendARGB(surface, onSurface, 0.075f)
-            fun floatingButton(view: View, radiusDp: Float = 16f) {
-                view.background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = radiusDp * density
-                    setColor(actionSurface)
-                    setStroke(density.toInt().coerceAtLeast(1), outline)
-                }
-            }
-            mViewBinding.headerSettingsBtn.visibility = View.VISIBLE
-            mViewBinding.headerSettingsBtn.imageTintList = regularTint
-            floatingButton(mViewBinding.headerSettingsBtn)
-
-            listOf(
-                mViewBinding.settingsBtn,
-                mViewBinding.cameraTypeBtn,
-                mViewBinding.themeBtn,
-                mViewBinding.resolutionBtn
-            ).forEach { floatingButton(it, 18f) }
-            mViewBinding.toolbarBg.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = cornerDp * density
-                setColor(ColorUtils.setAlphaComponent(surface, 232))
-                setStroke(density.toInt().coerceAtLeast(1), outline)
-            }
-            listOf(
-                mViewBinding.settingsLabelTv,
-                mViewBinding.cameraLabelTv,
-                mViewBinding.themeLabelTv,
-                mViewBinding.resolutionLabelTv
-            ).forEach { it.alpha = 0.9f }
-            mViewBinding.albumPreviewIv.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 16f * density
-                setColor(actionSurface)
-                setStroke(density.toInt().coerceAtLeast(1), outline)
-            }
-            val albumPadding = (8 * density).toInt()
-            mViewBinding.albumPreviewIv.setPadding(albumPadding, albumPadding, albumPadding, albumPadding)
-        } else if (workshop) {
+        if (workshop) {
+            mViewBinding.atelierCommentBtn.visibility = View.GONE
+            mViewBinding.atelierCommentLabelTv.visibility = View.GONE
+            mViewBinding.commentActionCard.visibility = View.GONE
+            mViewBinding.atelierCommentGroup.visibility = View.GONE
             mViewBinding.headerSettingsBtn.apply {
                 visibility = View.VISIBLE
                 setImageResource(R.drawable.ic_palette)
@@ -304,7 +260,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 mViewBinding.folderActionCard,
                 mViewBinding.cameraActionCard,
                 mViewBinding.themeActionCard,
-                mViewBinding.resolutionActionCard
+                mViewBinding.resolutionActionCard,
+                mViewBinding.commentActionCard
             )
             actionCards.forEach { card ->
                 card.background = GradientDrawable().apply {
@@ -315,6 +272,11 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 }
             }
             mViewBinding.toolbarBg.background = null
+            mViewBinding.themeBtn.apply {
+                setImageResource(R.drawable.ic_comment_alyx)
+                contentDescription = getString(R.string.add_capture_comment)
+            }
+            mViewBinding.themeLabelTv.setText(R.string.comment_short)
             listOf(
                 mViewBinding.settingsLabelTv,
                 mViewBinding.cameraLabelTv,
@@ -322,7 +284,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 mViewBinding.resolutionLabelTv
             ).forEach {
                 it.alpha = 1f
-                it.textSize = 13f
+                it.textSize = if (it === mViewBinding.themeLabelTv) 10f else 11f
             }
             mViewBinding.cameraViewContainer.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
@@ -342,20 +304,23 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 textSize = 15f
                 alpha = 0.82f
             }
-            mViewBinding.albumPreviewIv.background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(surface)
-                setStroke(density.toInt().coerceAtLeast(1), outline)
-            }
-            val albumPadding = (9 * density).toInt()
-            mViewBinding.albumPreviewIv.setPadding(albumPadding, albumPadding, albumPadding, albumPadding)
         } else {
             mViewBinding.headerSettingsBtn.visibility = View.GONE
+            mViewBinding.atelierCommentBtn.visibility = View.VISIBLE
+            mViewBinding.atelierCommentLabelTv.visibility = View.VISIBLE
+            mViewBinding.commentActionCard.visibility = View.VISIBLE
+            mViewBinding.atelierCommentGroup.visibility = View.VISIBLE
+            mViewBinding.themeBtn.apply {
+                setImageResource(R.drawable.ic_palette)
+                contentDescription = getString(R.string.choose_theme)
+            }
+            mViewBinding.themeLabelTv.setText(R.string.theme_short)
             listOf(
                 mViewBinding.folderActionCard,
                 mViewBinding.cameraActionCard,
                 mViewBinding.themeActionCard,
-                mViewBinding.resolutionActionCard
+                mViewBinding.resolutionActionCard,
+                mViewBinding.commentActionCard
             ).forEach { it.background = null }
         }
 
@@ -367,11 +332,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             }
         }
         (mViewBinding.toolbarBg.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { params ->
-            val toolbarMargin = when {
-                visee -> (28 * density).toInt()
-                workshop -> (16 * density).toInt()
-                else -> 0
-            }
+            val toolbarMargin = if (workshop) (16 * density).toInt() else 0
             params.marginStart = toolbarMargin
             params.marginEnd = toolbarMargin
             mViewBinding.toolbarBg.layoutParams = params
@@ -383,72 +344,24 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         )
         mViewBinding.captureBtn.setCaptureViewTheme(CaptureMediaView.CaptureViewTheme.THEME_BLUE)
 
-        if (visee) {
-            mViewBinding.modeSwitchLayout.background = null
-            mViewBinding.photoVideoDivider.visibility = View.GONE
-        } else {
-            mViewBinding.modeSwitchLayout.background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 28f * density
-                setColor(ColorUtils.blendARGB(surface, onSurface, 0.035f))
-                setStroke(density.toInt().coerceAtLeast(1), outline)
-            }
-            mViewBinding.photoVideoDivider.visibility = View.VISIBLE
+        mViewBinding.modeSwitchLayout.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 28f * density
+            setColor(ColorUtils.blendARGB(surface, onSurface, 0.035f))
+            setStroke(density.toInt().coerceAtLeast(1), outline)
         }
+        mViewBinding.photoVideoDivider.visibility = View.VISIBLE
     }
 
     /**
      * Les propositions sont des compositions d'interface, pas uniquement des couleurs.
      * Atelier : composition claire et structurée, fidèle à la maquette de référence.
-     * Visée : commandes superposées au viseur.
      * Workshop : commandes placées entre le viseur et le panneau de capture.
      */
     private fun applyAppearanceComposition(selected: Int) {
         val root = mViewBinding.root as androidx.constraintlayout.widget.ConstraintLayout
         val constraints = ConstraintSet().apply { clone(root) }
         when (selected) {
-            MainActivity.APPEARANCE_VISEE -> {
-                val density = resources.displayMetrics.density
-                val dp: (Int) -> Int = { (it * density).toInt() }
-                constraints.clear(R.id.cameraViewContainer, ConstraintSet.TOP)
-                constraints.clear(R.id.cameraViewContainer, ConstraintSet.BOTTOM)
-                constraints.connect(
-                    R.id.cameraViewContainer, ConstraintSet.TOP,
-                    R.id.headerBg, ConstraintSet.BOTTOM, dp(24)
-                )
-                constraints.connect(
-                    R.id.cameraViewContainer, ConstraintSet.BOTTOM,
-                    R.id.controlPanelLayout, ConstraintSet.TOP, dp(12)
-                )
-                constraints.clear(R.id.toolbarBg, ConstraintSet.TOP)
-                constraints.clear(R.id.cameraStatusTv, ConstraintSet.TOP)
-                constraints.connect(
-                    R.id.cameraStatusTv, ConstraintSet.TOP,
-                    R.id.headerBg, ConstraintSet.BOTTOM, dp(6)
-                )
-                constraints.connect(
-                    R.id.toolbarBg, ConstraintSet.TOP,
-                    R.id.cameraStatusTv, ConstraintSet.BOTTOM, dp(10)
-                )
-                constraints.clear(R.id.headerTitleTv, ConstraintSet.START)
-                constraints.connect(R.id.headerTitleTv, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START)
-                constraints.connect(R.id.headerTitleTv, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
-                constraints.constrainHeight(R.id.headerBg, dp(72))
-                constraints.clear(R.id.controlPanelLayout, ConstraintSet.BOTTOM)
-                constraints.connect(
-                    R.id.controlPanelLayout, ConstraintSet.BOTTOM,
-                    ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, dp(12)
-                )
-                constraints.constrainHeight(R.id.controlPanelLayout, dp(180))
-                constraints.constrainHeight(R.id.modeSwitchLayout, dp(48))
-                constraints.constrainWidth(R.id.captureBtn, dp(84))
-                constraints.constrainHeight(R.id.captureBtn, dp(84))
-                constraints.constrainWidth(R.id.albumPreviewIv, dp(52))
-                constraints.constrainHeight(R.id.albumPreviewIv, dp(52))
-                // La barre reste en haut, par-dessus la zone caméra comme dans la maquette Visée.
-                mViewBinding.toolbarBg.alpha = 1f
-                mViewBinding.headerTitleTv.textSize = 22f
-            }
             MainActivity.APPEARANCE_WORKSHOP -> {
                 val density = resources.displayMetrics.density
                 val dp: (Int) -> Int = { (it * density).toInt() }
@@ -480,10 +393,37 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 constraints.constrainHeight(R.id.modeSwitchLayout, dp(54))
                 constraints.constrainWidth(R.id.uvcLogoIv, dp(72))
                 constraints.constrainHeight(R.id.uvcLogoIv, dp(72))
-                constraints.constrainWidth(R.id.captureBtn, dp(88))
-                constraints.constrainHeight(R.id.captureBtn, dp(88))
                 constraints.constrainWidth(R.id.albumPreviewIv, dp(52))
                 constraints.constrainHeight(R.id.albumPreviewIv, dp(52))
+                constraints.constrainWidth(R.id.galleryBtn, dp(76))
+                constraints.constrainHeight(R.id.galleryBtn, dp(76))
+
+                // Workshop : Dossier, Caméra, Résolution, Commentaire.
+                constraints.clear(R.id.cameraTypeBtn, ConstraintSet.END)
+                constraints.connect(
+                    R.id.cameraTypeBtn, ConstraintSet.END,
+                    R.id.resolutionBtn, ConstraintSet.START
+                )
+                constraints.clear(R.id.resolutionBtn, ConstraintSet.START)
+                constraints.clear(R.id.resolutionBtn, ConstraintSet.END)
+                constraints.connect(
+                    R.id.resolutionBtn, ConstraintSet.START,
+                    R.id.cameraTypeBtn, ConstraintSet.END
+                )
+                constraints.connect(
+                    R.id.resolutionBtn, ConstraintSet.END,
+                    R.id.themeBtn, ConstraintSet.START
+                )
+                constraints.clear(R.id.themeBtn, ConstraintSet.START)
+                constraints.clear(R.id.themeBtn, ConstraintSet.END)
+                constraints.connect(
+                    R.id.themeBtn, ConstraintSet.START,
+                    R.id.resolutionBtn, ConstraintSet.END
+                )
+                constraints.connect(
+                    R.id.themeBtn, ConstraintSet.END,
+                    R.id.toolbarBg, ConstraintSet.END
+                )
                 mViewBinding.toolbarBg.alpha = 1f
                 mViewBinding.headerTitleTv.textSize = 24f
             }
@@ -495,24 +435,24 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 constraints.clear(R.id.toolbarBg, ConstraintSet.END)
                 constraints.connect(
                     R.id.toolbarBg, ConstraintSet.START,
-                    R.id.headerTitleTv, ConstraintSet.END, dp(2)
+                    ConstraintSet.PARENT_ID, ConstraintSet.START, dp(8)
                 )
                 constraints.connect(
                     R.id.toolbarBg, ConstraintSet.END,
-                    ConstraintSet.PARENT_ID, ConstraintSet.END, dp(4)
+                    ConstraintSet.PARENT_ID, ConstraintSet.END, dp(8)
                 )
                 constraints.connect(
                     R.id.toolbarBg, ConstraintSet.TOP,
-                    R.id.headerBg, ConstraintSet.TOP, dp(3)
+                    R.id.headerBg, ConstraintSet.BOTTOM, dp(0)
                 )
                 constraints.constrainWidth(R.id.toolbarBg, ConstraintSet.MATCH_CONSTRAINT)
-                constraints.constrainHeight(R.id.toolbarBg, dp(70))
+                constraints.constrainHeight(R.id.toolbarBg, dp(76))
 
                 constraints.clear(R.id.cameraViewContainer, ConstraintSet.TOP)
                 constraints.clear(R.id.cameraViewContainer, ConstraintSet.BOTTOM)
                 constraints.connect(
                     R.id.cameraViewContainer, ConstraintSet.TOP,
-                    R.id.headerBg, ConstraintSet.BOTTOM, dp(8)
+                    R.id.toolbarBg, ConstraintSet.BOTTOM, dp(8)
                 )
                 constraints.connect(
                     R.id.cameraViewContainer, ConstraintSet.BOTTOM,
@@ -524,17 +464,18 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                     ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, dp(10)
                 )
                 constraints.constrainHeight(R.id.controlPanelLayout, dp(174))
+                constraints.constrainWidth(R.id.galleryBtn, dp(76))
+                constraints.constrainHeight(R.id.galleryBtn, dp(76))
                 mViewBinding.toolbarBg.alpha = 1f
                 mViewBinding.toolbarBg.background = null
-                constraints.constrainHeight(R.id.headerBg, dp(76))
+                constraints.constrainHeight(R.id.headerBg, dp(68))
                 constraints.constrainWidth(R.id.headerLogoIv, dp(36))
                 constraints.constrainHeight(R.id.headerLogoIv, dp(36))
-                mViewBinding.headerTitleTv.textSize = 17f
+                mViewBinding.headerTitleTv.textSize = 21f
             }
         }
         constraints.applyTo(root)
-        mViewBinding.headerLogoIv.visibility =
-            if (selected == MainActivity.APPEARANCE_VISEE) View.GONE else View.VISIBLE
+        mViewBinding.headerLogoIv.visibility = View.VISIBLE
     }
 
     override fun initData() {
@@ -612,6 +553,10 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         code: ICameraStateCallBack.State,
         msg: String?
     ) {
+        if (!isAdded || view == null || !::mViewBinding.isInitialized) {
+            Logger.i(TAG, "Ignore camera state $code after view destruction")
+            return
+        }
         when (code) {
             ICameraStateCallBack.State.OPENED -> handleCameraOpened()
             ICameraStateCallBack.State.CLOSED -> handleCameraClosed()
@@ -620,21 +565,24 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     }
 
     private fun handleCameraError(msg: String?) {
-        updateViseeCameraStatus(false)
+        (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback(null)
         showEmptyCameraState()
         mViewBinding.frameRateTv.visibility = View.GONE
         ToastUtils.show(getString(R.string.camera_open_error, msg ?: getString(R.string.unknown_error)))
     }
 
     private fun handleCameraClosed() {
-        updateViseeCameraStatus(false)
+        (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback(null)
         showEmptyCameraState()
         mViewBinding.frameRateTv.visibility = View.GONE
         ToastUtils.show(R.string.camera_closed)
     }
 
     private fun handleCameraOpened() {
-        updateViseeCameraStatus(true)
+        (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback { button, state ->
+            Logger.i(TAG, "Endoscope button event: button=$button, state=$state")
+            if (state == HARDWARE_BUTTON_PRESSED) requestHardwareCapture()
+        }
         mViewBinding.uvcLogoIv.visibility = View.GONE
         mViewBinding.emptyCameraTitle.visibility = View.GONE
         mViewBinding.emptyCameraSubtitle.visibility = View.GONE
@@ -666,25 +614,6 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.emptyCameraTitle.visibility =
             if (selected == MainActivity.APPEARANCE_WORKSHOP) View.GONE else View.VISIBLE
         mViewBinding.emptyCameraSubtitle.visibility = View.VISIBLE
-    }
-
-    private fun updateViseeCameraStatus(connected: Boolean) {
-        if (!::mViewBinding.isInitialized) return
-        val selected = requireContext().getSharedPreferences(MainActivity.APPEARANCE_PREFS, 0)
-            .getInt(MainActivity.KEY_APPEARANCE, MainActivity.APPEARANCE_ATELIER)
-        if (selected != MainActivity.APPEARANCE_VISEE) return
-        setViseeCameraStatusText(connected)
-    }
-
-    private fun setViseeCameraStatusText(connected: Boolean) {
-        val text = getString(if (connected) R.string.camera_connected else R.string.camera_disconnected)
-        val accent = MaterialColors.getColor(
-            mViewBinding.cameraStatusTv,
-            com.google.android.material.R.attr.colorPrimary
-        )
-        mViewBinding.cameraStatusTv.text = SpannableString(text).apply {
-            setSpan(ForegroundColorSpan(accent), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
     }
 
     private fun switchLayoutClick() {
@@ -735,18 +664,31 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         }
     }
 
+    /** Handles both Android KEY_CAMERA events and UVC status-endpoint button events. */
+    fun requestHardwareCapture(): Boolean {
+        if (!isAdded || view == null || !::mViewBinding.isInitialized) return false
+        mViewBinding.root.post {
+            if (isAdded && view != null) {
+                onViewClick(mCameraMode)
+            }
+        }
+        return true
+    }
+
     private fun captureVideo() {
         if (isCapturingVideo) {
             captureVideoStop()
             return
         }
+        mVideoCapturedAt = System.currentTimeMillis()
+        mVideoComment = mCaptureComment
+        applyTimestampEffect(mVideoCapturedAt, mVideoComment)
         captureVideoStart(object : ICaptureCallBack {
             override fun onBegin() {
                 isCapturingVideo = true
                 mViewBinding.captureBtn.setCaptureVideoState(CaptureMediaView.CaptureVideoState.DOING)
                 mViewBinding.modeSwitchLayout.visibility = View.GONE
-                mViewBinding.toolbarGroup.visibility = View.GONE
-                mViewBinding.albumPreviewIv.visibility = View.GONE
+                setToolbarVisibility(false)
                 mViewBinding.recTimerLayout.visibility = View.VISIBLE
                 startMediaTimer()
             }
@@ -754,26 +696,29 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             override fun onError(error: String?) {
                 ToastUtils.show(error ?: getString(R.string.unknown_error))
                 isCapturingVideo = false
+                removeTimestampEffect()
                 mViewBinding.captureBtn.setCaptureVideoState(CaptureMediaView.CaptureVideoState.UNDO)
                 stopMediaTimer()
             }
 
             override fun onComplete(path: String?) {
-                handleCapturedMedia(path, "video/mp4")
+                removeTimestampEffect()
+                handleCapturedMedia(path, "video/mp4", mVideoCapturedAt, mVideoComment)
                 isCapturingVideo = false
                 mViewBinding.captureBtn.setCaptureVideoState(CaptureMediaView.CaptureVideoState.UNDO)
                 mViewBinding.modeSwitchLayout.visibility = View.VISIBLE
-                mViewBinding.toolbarGroup.visibility = View.VISIBLE
-                mViewBinding.albumPreviewIv.visibility = View.VISIBLE
+                setToolbarVisibility(true)
                 mViewBinding.recTimerLayout.visibility = View.GONE
                 showRecentMedia(false)
                 stopMediaTimer()
             }
 
-        }, createTemporaryMediaPath("mp4", extensionAddedByLibrary = true))
+        }, createTemporaryMediaPath("mp4", mVideoCapturedAt, extensionAddedByLibrary = true))
     }
 
     private fun captureImage() {
+        val capturedAt = System.currentTimeMillis()
+        val comment = mCaptureComment
         captureImage(object : ICaptureCallBack {
             override fun onBegin() {
                 mTakePictureTipView.show("", 100)
@@ -790,12 +735,24 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             override fun onComplete(path: String?) {
                 showRecentMedia(true)
                 mViewBinding.albumPreviewIv.setNewImageFlag(false)
-                handleCapturedMedia(path, "image/jpeg")
+                handleCapturedMedia(path, "image/jpeg", capturedAt, comment)
             }
-        }, createTemporaryMediaPath("jpg"))
+        }, createTemporaryMediaPath("jpg", capturedAt))
+    }
+
+    private fun applyTimestampEffect(capturedAt: Long, comment: String) {
+        removeTimestampEffect()
+        mTimestampEffect = EffectTimestamp(requireContext(), capturedAt, comment).also(::addRenderEffect)
+    }
+
+    private fun removeTimestampEffect() {
+        mTimestampEffect?.let(::removeRenderEffect)
+        mTimestampEffect = null
     }
 
     override fun onDestroyView() {
+        (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback(null)
+        removeTimestampEffect()
         super.onDestroyView()
     }
 
@@ -818,13 +775,19 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                         folderPicker.launch(selectedMediaFolderUri())
                     }
                     mViewBinding.themeBtn -> {
-                        showAppearanceDialog()
+                        if (isWorkshopAppearance()) showCaptureCommentDialog() else showAppearanceDialog()
                     }
                     mViewBinding.resolutionBtn -> {
                         showResolutionDialog()
                     }
                     mViewBinding.albumPreviewIv -> {
                         goToGalley()
+                    }
+                    mViewBinding.galleryBtn -> {
+                        goToGalley()
+                    }
+                    mViewBinding.atelierCommentBtn -> {
+                        showCaptureCommentDialog()
                     }
                     else -> {
                     }
@@ -905,17 +868,18 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             MainActivity.KEY_APPEARANCE,
             MainActivity.APPEARANCE_ATELIER
         )
-        val choices = listOf(
-            getString(R.string.theme_atelier),
-            getString(R.string.theme_visee),
-            getString(R.string.theme_workshop)
+        val appearances = listOf(
+            MainActivity.APPEARANCE_ATELIER to getString(R.string.theme_atelier),
+            MainActivity.APPEARANCE_WORKSHOP to getString(R.string.theme_workshop)
         )
+        val choices = appearances.map { it.second }
         MaterialDialog(requireContext()).show {
             title(R.string.theme_title)
             listItems(items = choices) { dialog, index, _ ->
                 dialog.dismiss()
-                if (index == currentSelection) return@listItems
-                preferences.edit().putInt(MainActivity.KEY_APPEARANCE, index).commit()
+                val selectedAppearance = appearances[index].first
+                if (selectedAppearance == currentSelection) return@listItems
+                preferences.edit().putInt(MainActivity.KEY_APPEARANCE, selectedAppearance).commit()
                 ToastUtils.show(getString(R.string.theme_applied, choices[index]))
                 requireActivity().recreate()
             }
@@ -966,36 +930,61 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
     private fun createTemporaryMediaPath(
         extension: String,
+        capturedAt: Long,
         extensionAddedByLibrary: Boolean = false
     ): String? {
         if (selectedMediaFolderUri() == null) return null
         val directory = File(requireContext().cacheDir, "media").apply { mkdirs() }
-        val baseName = "Alyx_${System.currentTimeMillis()}"
+        val baseName = "Alyx_${MediaRepository.fileNameDate(capturedAt)}"
         return File(directory, if (extensionAddedByLibrary) baseName else "$baseName.$extension").absolutePath
     }
 
-    private fun handleCapturedMedia(path: String?, mimeType: String) {
+    private fun handleCapturedMedia(
+        path: String?,
+        mimeType: String,
+        capturedAt: Long,
+        comment: String
+    ) {
         if (path.isNullOrBlank()) {
             ToastUtils.show(R.string.unknown_error)
             return
         }
         val treeUri = selectedMediaFolderUri()
-        if (treeUri == null) {
-            ToastUtils.show(path)
-            return
-        }
+        val appContext = requireContext().applicationContext
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val source = File(path)
-                val tree = DocumentFile.fromTreeUri(requireContext(), treeUri)
+                if (mimeType == "image/jpeg") {
+                    MediaStampUtils.stampPhoto(source, capturedAt, comment)
+                }
+                if (treeUri == null) {
+                    MediaRepository.add(
+                        appContext,
+                        MediaRecord(
+                            Uri.fromFile(source).toString(), mimeType, capturedAt, source.name,
+                            comment, hasEmbeddedStamp = true, embeddedComment = comment
+                        )
+                    )
+                    launch(Dispatchers.Main) { ToastUtils.show(path) }
+                    return@launch
+                }
+                val tree = DocumentFile.fromTreeUri(appContext, treeUri)
                     ?: throw IllegalStateException("Invalid destination folder")
                 val destination = tree.createFile(mimeType, source.name)
                     ?: throw IllegalStateException("Unable to create destination file")
-                requireContext().contentResolver.openOutputStream(destination.uri, "w").use { output ->
+                appContext.contentResolver.openOutputStream(destination.uri, "w").use { output ->
                     requireNotNull(output)
                     source.inputStream().use { input -> input.copyTo(output) }
                 }
                 source.delete()
+                MediaRepository.add(
+                    appContext,
+                    MediaRecord(
+                        destination.uri.toString(), mimeType, capturedAt,
+                        destination.name ?: source.name, comment,
+                        hasEmbeddedStamp = true, embeddedComment = comment
+                    )
+                )
                 launch(Dispatchers.Main) {
                     ToastUtils.show(getString(R.string.media_saved, tree.name ?: "le dossier sélectionné"))
                 }
@@ -1008,12 +997,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
     private fun goToGalley() {
         try {
-            Intent(
-                Intent.ACTION_VIEW,
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            ).apply {
-                startActivity(this)
-            }
+            startActivity(Intent(requireContext(), GalleryActivity::class.java))
         } catch (e: Exception) {
             ToastUtils.show(getString(R.string.open_error, e.localizedMessage ?: getString(R.string.unknown_error)))
         }
@@ -1070,7 +1054,6 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         val selectedAppearance = requireContext()
             .getSharedPreferences(MainActivity.APPEARANCE_PREFS, 0)
             .getInt(MainActivity.KEY_APPEARANCE, MainActivity.APPEARANCE_ATELIER)
-        val visee = selectedAppearance == MainActivity.APPEARANCE_VISEE
         val workshop = selectedAppearance == MainActivity.APPEARANCE_WORKSHOP
         mViewBinding.modeSwitchLayout.children.filterIsInstance<TextView>().forEach { tabTv ->
             val isSelected = tabTv.id == mCameraModeTabMap[mCameraMode]
@@ -1082,19 +1065,9 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             )
             val textColor = if (isSelected) accent else ColorUtils.setAlphaComponent(onSurface, 178)
             tabTv.setTextColor(textColor)
-            tabTv.textSize = if (visee || workshop) 15f else 12f
+            tabTv.textSize = if (workshop) 15f else 12f
             tabTv.setShadowLayer(0F, 0F, 0F, android.graphics.Color.TRANSPARENT)
-            if (visee) {
-                TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                    tabTv,
-                    0,
-                    0,
-                    0,
-                    if (isSelected) R.drawable.camera_mode_line_selected
-                    else R.drawable.camera_mode_line_transparent
-                )
-                tabTv.compoundDrawablePadding = (5 * density).toInt()
-            } else if (workshop) {
+            if (workshop) {
                 TextViewCompat.setCompoundDrawablesRelativeWithIntrinsicBounds(tabTv, 0, 0, 0, 0)
                 tabTv.compoundDrawablePadding = 0
             } else {
@@ -1109,7 +1082,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 tabTv.compoundDrawablePadding = (3 * density).toInt()
             }
             TextViewCompat.setCompoundDrawableTintList(tabTv, ColorStateList.valueOf(textColor))
-            tabTv.background = if (isSelected && !visee) {
+            tabTv.background = if (isSelected) {
                 GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = 24f * density
@@ -1123,6 +1096,58 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.captureBtn.setCaptureMode(mCameraMode)
         mViewBinding.controlPanelLayout.visibility = View.VISIBLE
         mViewBinding.controlPanelLayout.translationY = 0f
+    }
+
+    private fun isWorkshopAppearance(): Boolean = requireContext()
+        .getSharedPreferences(MainActivity.APPEARANCE_PREFS, 0)
+        .getInt(MainActivity.KEY_APPEARANCE, MainActivity.APPEARANCE_ATELIER) ==
+        MainActivity.APPEARANCE_WORKSHOP
+
+    private fun setToolbarVisibility(visible: Boolean) {
+        mViewBinding.toolbarGroup.visibility = if (visible) View.VISIBLE else View.GONE
+        val atelierVisibility = if (visible && !isWorkshopAppearance()) View.VISIBLE else View.GONE
+        mViewBinding.atelierCommentGroup.visibility = atelierVisibility
+        mViewBinding.atelierCommentBtn.visibility = atelierVisibility
+        mViewBinding.atelierCommentLabelTv.visibility = atelierVisibility
+        mViewBinding.commentActionCard.visibility = atelierVisibility
+    }
+
+    private fun showCaptureCommentDialog() {
+        val density = resources.displayMetrics.density
+        val input = EditText(requireContext()).apply {
+            setText(mCaptureComment)
+            setSelection(text.length)
+            hint = getString(R.string.capture_comment_hint)
+            minLines = 2
+            maxLines = 3
+            filters = arrayOf(android.text.InputFilter.LengthFilter(MAX_CAPTURE_COMMENT_LENGTH))
+            val horizontal = (24 * density).toInt()
+            val vertical = (10 * density).toInt()
+            setPadding(horizontal, vertical, horizontal, vertical)
+        }
+        val dialog = AlertDialog.Builder(requireContext())
+            .setTitle(R.string.add_capture_comment)
+            .setView(input)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.clear_comment) { _, _ -> saveCaptureComment("") }
+            .setPositiveButton(R.string.save_comment) { _, _ -> saveCaptureComment(input.text.toString()) }
+            .create()
+        dialog.setOnShowListener {
+            input.requestFocus()
+            dialog.window?.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+            )
+        }
+        dialog.show()
+    }
+
+    private fun saveCaptureComment(value: String) {
+        mCaptureComment = value.trim()
+        requireContext().getSharedPreferences(COMMENT_PREFS, 0)
+            .edit().putString(KEY_CAPTURE_COMMENT, mCaptureComment).apply()
+        ToastUtils.show(
+            if (mCaptureComment.isBlank()) R.string.comment_cleared else R.string.comment_ready
+        )
     }
 
     private fun clickAnimation(v: View, listener: Animator.AnimatorListener) {
@@ -1211,6 +1236,10 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     companion object {
         private const val STORAGE_PREFS = "media_storage"
         private const val KEY_MEDIA_FOLDER = "media_folder_uri"
+        private const val HARDWARE_BUTTON_PRESSED = 1
+        private const val COMMENT_PREFS = "capture_comments"
+        private const val KEY_CAPTURE_COMMENT = "current_comment"
+        private const val MAX_CAPTURE_COMMENT_LENGTH = 120
         private const val TAG  = "DemoFragment"
         private const val WHAT_START_TIMER = 0x00
         private const val WHAT_STOP_TIMER = 0x01

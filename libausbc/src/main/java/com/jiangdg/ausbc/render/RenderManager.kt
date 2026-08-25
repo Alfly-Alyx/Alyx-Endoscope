@@ -15,13 +15,12 @@
  */
 package com.jiangdg.ausbc.render
 
-import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.SurfaceTexture
+import android.media.MediaScannerConnection
 import android.opengl.EGLContext
 import android.os.*
-import android.provider.MediaStore
 import android.view.Surface
 import com.jiangdg.ausbc.callback.ICaptureCallBack
 import com.jiangdg.ausbc.callback.IPreviewDataCallBack
@@ -465,14 +464,17 @@ class RenderManager(
             mCaptureState.set(false)
             return
         }
-        val values = ContentValues()
-        values.put(MediaStore.Images.ImageColumns.TITLE, title)
-        values.put(MediaStore.Images.ImageColumns.DISPLAY_NAME, displayName)
-        values.put(MediaStore.Images.ImageColumns.DATA, path)
-        values.put(MediaStore.Images.ImageColumns.DATE_TAKEN, date)
-        values.put(MediaStore.Images.ImageColumns.WIDTH, width)
-        values.put(MediaStore.Images.ImageColumns.HEIGHT, height)
-        mContext.contentResolver?.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        // Explicit paths are temporary files managed by the caller. Inserting
+        // their absolute path into MediaStore crashes on Android 10+ because
+        // mutation of the protected _data column is forbidden.
+        if (savePath == null) {
+            MediaScannerConnection.scanFile(
+                mContext,
+                arrayOf(path),
+                arrayOf("image/jpeg"),
+                null
+            )
+        }
         mMainHandler.post {
             mCaptureDataCb?.onComplete(path)
         }

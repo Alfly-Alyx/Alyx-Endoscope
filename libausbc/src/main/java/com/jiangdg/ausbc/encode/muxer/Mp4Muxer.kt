@@ -15,20 +15,17 @@
  */
 package com.jiangdg.ausbc.encode.muxer
 
-import android.content.ContentValues
 import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.media.MediaMuxer
+import android.media.MediaScannerConnection
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
-import android.text.format.DateUtils
 import com.jiangdg.ausbc.callback.ICaptureCallBack
 import com.jiangdg.ausbc.utils.Logger
-import com.jiangdg.ausbc.utils.MediaUtils
 import com.jiangdg.ausbc.utils.Utils
 import java.io.File
 import java.lang.Exception
@@ -248,31 +245,20 @@ class Mp4Muxer(
             if (videoPath.isNullOrEmpty()) {
                 return
             }
-            ctx.contentResolver.let { content ->
-                val uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                content.insert(uri, getVideoContentValues(videoPath))
-                mMainHandler.post {
-                    mCaptureCallBack?.onComplete(this.path)
-                }
+            // Custom paths can live in the app cache before SAF export. Android 10+
+            // forbids writing their absolute path to MediaStore's protected _data column.
+            if (!videoPath.startsWith(ctx.cacheDir.absolutePath)) {
+                MediaScannerConnection.scanFile(
+                    ctx,
+                    arrayOf(videoPath),
+                    arrayOf("video/mp4"),
+                    null
+                )
+            }
+            mMainHandler.post {
+                mCaptureCallBack?.onComplete(videoPath)
             }
         }
-    }
-
-    private fun getVideoContentValues(path: String): ContentValues {
-        val file = File(path)
-        val values = ContentValues()
-        values.put(MediaStore.Video.Media.DATA, path)
-        values.put(MediaStore.Video.Media.DISPLAY_NAME, file.name)
-        values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-        values.put(MediaStore.Video.Media.SIZE, file.length())
-        values.put(MediaStore.Video.Media.DURATION, getLocalVideoDuration(file.path))
-        if (MediaUtils.isAboveQ()) {
-            val relativePath =  "${Environment.DIRECTORY_DCIM}${File.separator}Camera"
-            val dateExpires = (System.currentTimeMillis() + DateUtils.DAY_IN_MILLIS) / 1000
-            values.put(MediaStore.Video.Media.RELATIVE_PATH, relativePath)
-            values.put(MediaStore.Video.Media.DATE_EXPIRES, dateExpires)
-        }
-        return values
     }
 
 
