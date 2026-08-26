@@ -112,6 +112,53 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/emptyCameraTitle" />
 
+    <FrameLayout
+        android:id="@+id/distortionOverlayLayout"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:elevation="8dp"
+        app:layout_constraintBottom_toBottomOf="@id/cameraViewContainer"
+        app:layout_constraintEnd_toEndOf="@id/cameraViewContainer"
+        app:layout_constraintStart_toStartOf="@id/cameraViewContainer"
+        app:layout_constraintTop_toTopOf="@id/cameraViewContainer">
+
+        <TextView
+            android:id="@+id/distortionValueTv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="44dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="4dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="3dp"
+            android:text="@string/radial_coefficient_zero"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="8sp" />
+
+        <FrameLayout
+            android:id="@+id/distortionControlLayout"
+            android:layout_width="36dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="4dp"
+            android:layout_marginBottom="12dp">
+
+            <com.jiangdg.demo.RadialDistortionSlider
+                android:id="@+id/distortionSlider"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/radial_distortion_accessibility" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
     <View
         android:id="@+id/toolbarBg"
         android:layout_width="match_parent"
@@ -473,14 +520,4 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/cameraViewContainer" />
 
-    <SeekBar
-        android:id="@+id/brightnessSb"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginEnd="40dp"
-        android:layout_marginBottom="20dp"
-        app:layout_constraintBottom_toTopOf="@+id/controlPanelLayout"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

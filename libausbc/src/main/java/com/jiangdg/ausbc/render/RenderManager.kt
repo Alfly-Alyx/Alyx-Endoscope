@@ -132,6 +132,10 @@ class RenderManager(
                     mCameraRender?.setSize(mWidth, mHeight)
                     mScreenRender?.setSize(mWidth, mHeight)
                     mCaptureRender?.setSize(mWidth, mHeight)
+                    // An effect can be registered as soon as EGL is ready, before the
+                    // preview surface reports its real dimensions. Resize every effect
+                    // here so its framebuffer is never left at the initial 0 x 0 size.
+                    mEffectList.forEach { it.setSize(mWidth, mHeight) }
                     mCameraSurfaceTexture?.setDefaultBufferSize(mWidth, mHeight)
                 }
             }
@@ -181,7 +185,9 @@ class RenderManager(
                         return@let
                     }
                     effect.initGLES()
-                    effect.setSize(mWidth, mHeight)
+                    if (mWidth > 0 && mHeight > 0) {
+                        effect.setSize(mWidth, mHeight)
+                    }
                     mEffectList.add(effect)
                     mCacheEffectList.add(effect)
                     Logger.i(TAG, "add effect, name = ${effect.javaClass.simpleName}, size = ${mEffectList.size}")

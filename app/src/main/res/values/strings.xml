@@ -53,4 +53,8 @@
     <string name="media_comment_title">Commentaire du cliché</string>
     <string name="media_comment_hint">Quelques mots à afficher sur ce cliché…</string>
     <string name="add_or_edit_comment">Ajouter ou modifier le commentaire</string>
+    <string name="radial_coefficient_zero">k 0,00</string>
+    <string name="radial_coefficient_value">k %1$.2f</string>
+    <string name="radial_distortion_accessibility">Correction anti-fisheye</string>
+    <string name="radial_distortion_value_accessibility">Correction anti-fisheye, coefficient %1$.2f</string>
 </resources>

@@ -1,5 +1,16 @@
 # Versions
 
+## 0.11.0
+
+- Ajout d’une réglette verticale de correction anti-fisheye dans Atelier et Workshop.
+- Réglette très fine placée directement en superposition sur l’image de l’endoscope.
+- Réglage en temps réel du coefficient de distorsion radiale de 0,00 à −0,40.
+- Application de la correction à l’aperçu, aux photos et aux vidéos.
+- Correction de l’écran noir provoqué par l’initialisation trop précoce du traitement vidéo.
+- Conservation systématique du coefficient, du mode Photo/Vidéo, de la résolution et de la caméra choisie.
+- Suppression de l’ancienne réglette horizontale de luminosité.
+- Luminosité de l’écran à 100 % pendant l’utilisation, puis retour automatique au réglage normal.
+
 ## 0.10.1
 
 - Remplacement du déclencheur à l’écran par l’accès aux clichés Endoscope dans les deux thèmes.

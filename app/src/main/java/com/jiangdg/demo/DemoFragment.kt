@@ -36,8 +36,8 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.SeekBar
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.ColorUtils
@@ -57,11 +57,14 @@ import com.jiangdg.ausbc.callback.ICameraStateCallBack
 import com.jiangdg.demo.databinding.FragmentDemoBinding
 import com.jiangdg.ausbc.callback.ICaptureCallBack
 import com.jiangdg.ausbc.camera.CameraUVC
+import com.jiangdg.ausbc.camera.bean.CameraRequest
 import com.jiangdg.ausbc.render.effect.EffectBlackWhite
+import com.jiangdg.ausbc.render.effect.EffectRadialDistortion
 import com.jiangdg.ausbc.render.effect.EffectSoul
 import com.jiangdg.ausbc.render.effect.EffectTimestamp
 import com.jiangdg.ausbc.render.effect.EffectZoom
 import com.jiangdg.ausbc.render.effect.bean.CameraEffect
+import com.jiangdg.ausbc.render.env.RotateType
 import com.jiangdg.ausbc.utils.*
 import com.jiangdg.ausbc.utils.bus.BusKey
 import com.jiangdg.ausbc.utils.bus.EventBus
@@ -90,6 +93,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     private var mVideoCapturedAt = 0L
     private var mVideoComment = ""
     private var mCaptureComment = ""
+    private var mRadialDistortionEffect: EffectRadialDistortion? = null
+    private var mRadialCoefficient = 0f
 
     private val folderPicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@registerForActivityResult
@@ -175,7 +180,10 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         super.initView()
         mCaptureComment = requireContext().getSharedPreferences(COMMENT_PREFS, 0)
             .getString(KEY_CAPTURE_COMMENT, "").orEmpty()
+        loadPersistedUserSettings()
+        attachDistortionOverlayToPreview()
         applySelectedAppearance()
+        setupRadialDistortionControl()
         mViewBinding.cameraTypeBtn.setOnClickListener(this)
         mViewBinding.settingsBtn.setOnClickListener(this)
         mViewBinding.themeBtn.setOnClickListener(this)
@@ -186,6 +194,34 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.atelierCommentBtn.setOnClickListener(this)
         mViewBinding.captureBtn.setOnViewClickListener(this)
         switchLayoutClick()
+    }
+
+    /** Place la commande exactement au-dessus du TextureView, y compris en mode letterbox. */
+    private fun attachDistortionOverlayToPreview() {
+        val container = mViewBinding.cameraViewContainer
+        val overlay = mViewBinding.distortionOverlayLayout
+        val preview = container.children.firstOrNull() ?: return
+        (overlay.parent as? ViewGroup)?.removeView(overlay)
+        container.addView(
+            overlay,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                Gravity.CENTER
+            )
+        )
+
+        fun matchPreviewBounds() {
+            if (preview.width <= 0 || preview.height <= 0) return
+            overlay.layoutParams = FrameLayout.LayoutParams(
+                preview.width,
+                preview.height,
+                Gravity.CENTER
+            )
+            overlay.bringToFront()
+        }
+        preview.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> matchPreviewBounds() }
+        container.post { matchPreviewBounds() }
     }
 
     /** Rend les deux apparences réellement distinctes, au-delà de la palette DayNight. */
@@ -244,6 +280,19 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.galleryBtn.imageTintList = accentTint
         val galleryPadding = (18 * density).toInt()
         mViewBinding.galleryBtn.setPadding(galleryPadding, galleryPadding, galleryPadding, galleryPadding)
+        mViewBinding.distortionControlLayout.background = null
+        mViewBinding.distortionValueTv.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 10f * density
+            setColor(ColorUtils.setAlphaComponent(surface, if (workshop) 236 else 224))
+            setStroke(density.toInt().coerceAtLeast(1), outline)
+        }
+        mViewBinding.distortionValueTv.setTextColor(onSurface)
+        mViewBinding.distortionSlider.setColors(
+            ColorUtils.setAlphaComponent(onSurface, 92),
+            accent,
+            surface
+        )
 
         if (workshop) {
             mViewBinding.atelierCommentBtn.visibility = View.GONE
@@ -379,11 +428,6 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 )
                 constraints.connect(
                     R.id.cameraViewContainer, ConstraintSet.BOTTOM,
-                    R.id.toolbarBg, ConstraintSet.TOP, dp(12)
-                )
-                constraints.clear(R.id.brightnessSb, ConstraintSet.BOTTOM)
-                constraints.connect(
-                    R.id.brightnessSb, ConstraintSet.BOTTOM,
                     R.id.toolbarBg, ConstraintSet.TOP, dp(12)
                 )
                 constraints.constrainHeight(R.id.headerBg, dp(82))
@@ -545,6 +589,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                     else -> throw IllegalStateException("Unsupported classify")
                 }
             }
+            ensureRadialDistortionEffect()
         })
     }
 
@@ -579,7 +624,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     }
 
     private fun handleCameraOpened() {
-        (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback { button, state ->
+        val camera = getCurrentCamera() as? CameraUVC
+        camera?.setHardwareButtonCallback { button, state ->
             Logger.i(TAG, "Endoscope button event: button=$button, state=$state")
             if (state == HARDWARE_BUTTON_PRESSED) requestHardwareCapture()
         }
@@ -587,22 +633,18 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.emptyCameraTitle.visibility = View.GONE
         mViewBinding.emptyCameraSubtitle.visibility = View.GONE
         mViewBinding.frameRateTv.visibility = View.VISIBLE
-        mViewBinding.brightnessSb.max = (getCurrentCamera() as? CameraUVC)?.getBrightnessMax() ?: 100
-        mViewBinding.brightnessSb.progress = (getCurrentCamera() as? CameraUVC)?.getBrightness() ?: 0
-        Logger.i(TAG, "max = ${mViewBinding.brightnessSb.max}, progress = ${mViewBinding.brightnessSb.progress}")
-        mViewBinding.brightnessSb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                (getCurrentCamera() as? CameraUVC)?.setBrightness(progress)
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-
-            }
-        })
+        val device = camera?.getUsbDevice()
+        val userSettings = userSettings()
+        getCurrentPreviewSize()?.let { size ->
+            userSettings.edit()
+                .putInt(deviceSettingKey(KEY_RESOLUTION_WIDTH, device), size.width)
+                .putInt(deviceSettingKey(KEY_RESOLUTION_HEIGHT, device), size.height)
+                .apply()
+        }
+        if (!userSettings.contains(KEY_CAMERA_VENDOR_ID) && device != null) {
+            savePreferredCamera(device)
+        }
+        loadRadialCoefficientForDevice(device)
         ToastUtils.show(R.string.camera_opened)
     }
 
@@ -630,7 +672,42 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     private fun setCameraMode(mode: CaptureMediaView.CaptureMode) {
         if (mCameraMode == mode) return
         mCameraMode = mode
+        userSettings().edit().putInt(
+            KEY_CAPTURE_MODE,
+            if (mode == CaptureMediaView.CaptureMode.MODE_CAPTURE_VIDEO) CAPTURE_MODE_VIDEO
+            else CAPTURE_MODE_PHOTO
+        ).apply()
         updateCameraModeSwitchUI()
+    }
+
+    override fun getCameraRequest(): CameraRequest {
+        val device = (getCurrentCamera() as? CameraUVC)?.getUsbDevice()
+        val preferences = userSettings()
+        val width = preferences.getInt(deviceSettingKey(KEY_RESOLUTION_WIDTH, device), 0)
+        val height = preferences.getInt(deviceSettingKey(KEY_RESOLUTION_HEIGHT, device), 0)
+        return CameraRequest.Builder()
+            .setPreviewWidth(width)
+            .setPreviewHeight(height)
+            .setRenderMode(CameraRequest.RenderMode.OPENGL)
+            .setDefaultRotateType(RotateType.ANGLE_0)
+            .setAudioSource(CameraRequest.AudioSource.NONE)
+            .setPreviewFormat(CameraRequest.PreviewFormat.FORMAT_MJPEG)
+            .setAspectRatioShow(true)
+            .setCaptureRawImage(false)
+            .setRawPreviewData(false)
+            .create()
+    }
+
+    override fun getDefaultCamera(): UsbDevice? {
+        val preferences = userSettings()
+        if (!preferences.contains(KEY_CAMERA_VENDOR_ID) || !preferences.contains(KEY_CAMERA_PRODUCT_ID)) {
+            return null
+        }
+        val vendorId = preferences.getInt(KEY_CAMERA_VENDOR_ID, -1)
+        val productId = preferences.getInt(KEY_CAMERA_PRODUCT_ID, -1)
+        return getDeviceList()?.firstOrNull {
+            it.vendorId == vendorId && it.productId == productId
+        }
     }
 
     override fun getCameraView(): IAspectRatio {
@@ -753,6 +830,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     override fun onDestroyView() {
         (getCurrentCamera() as? CameraUVC)?.setHardwareButtonCallback(null)
         removeTimestampEffect()
+        mRadialDistortionEffect?.let(::removeRenderEffect)
+        mRadialDistortionEffect = null
         super.onDestroyView()
     }
 
@@ -807,7 +886,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         for (index in (0 until usbDeviceList.size)) {
             val dev = usbDeviceList[index]
             val devName = if (Build.VERSION.SDK_INT >=Build.VERSION_CODES.LOLLIPOP && !dev.productName.isNullOrEmpty()) {
-                "${dev.productName}(${curDevice?.deviceId})"
+                "${dev.productName}(${dev.deviceId})"
             } else {
                 dev.deviceName
             }
@@ -829,6 +908,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 if (selectedIndex == index) {
                     return@listItemsSingleChoice
                 }
+                savePreferredCamera(usbDeviceList[index])
                 switchCamera(usbDeviceList[index])
             }
         }
@@ -916,7 +996,13 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                     if (selectedIndex == index) {
                         return@listItemsSingleChoice
                     }
-                    updateResolution(sortedSizes[index].width, sortedSizes[index].height)
+                    val selectedSize = sortedSizes[index]
+                    val device = (getCurrentCamera() as? CameraUVC)?.getUsbDevice()
+                    userSettings().edit()
+                        .putInt(deviceSettingKey(KEY_RESOLUTION_WIDTH, device), selectedSize.width)
+                        .putInt(deviceSettingKey(KEY_RESOLUTION_HEIGHT, device), selectedSize.height)
+                        .apply()
+                    updateResolution(selectedSize.width, selectedSize.height)
                 }
             }
         }
@@ -1098,6 +1184,89 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         mViewBinding.controlPanelLayout.translationY = 0f
     }
 
+    private fun loadPersistedUserSettings() {
+        val preferences = userSettings()
+        mCameraMode = if (preferences.getInt(KEY_CAPTURE_MODE, CAPTURE_MODE_PHOTO) == CAPTURE_MODE_VIDEO) {
+            CaptureMediaView.CaptureMode.MODE_CAPTURE_VIDEO
+        } else {
+            CaptureMediaView.CaptureMode.MODE_CAPTURE_PIC
+        }
+        mRadialCoefficient = preferences.getFloat(KEY_RADIAL_COEFFICIENT, 0f)
+            .coerceIn(EffectRadialDistortion.MIN_COEFFICIENT, EffectRadialDistortion.MAX_COEFFICIENT)
+    }
+
+    private fun setupRadialDistortionControl() {
+        updateRadialDistortionUi()
+        mViewBinding.distortionSlider.setOnValueChangeListener { value, finished ->
+            val coefficient = EffectRadialDistortion.MIN_COEFFICIENT * value
+            setRadialCoefficient(coefficient, persist = finished)
+        }
+    }
+
+    private fun ensureRadialDistortionEffect() {
+        val effect = mRadialDistortionEffect ?: EffectRadialDistortion(
+            requireContext(),
+            mRadialCoefficient
+        ).also { mRadialDistortionEffect = it }
+        effect.setCoefficient(mRadialCoefficient)
+        addRenderEffect(effect)
+    }
+
+    private fun setRadialCoefficient(value: Float, persist: Boolean) {
+        mRadialCoefficient = value.coerceIn(
+            EffectRadialDistortion.MIN_COEFFICIENT,
+            EffectRadialDistortion.MAX_COEFFICIENT
+        )
+        mRadialDistortionEffect?.setCoefficient(mRadialCoefficient)
+        updateRadialDistortionUi()
+        if (!persist) return
+
+        val editor = userSettings().edit().putFloat(KEY_RADIAL_COEFFICIENT, mRadialCoefficient)
+        val device = (getCurrentCamera() as? CameraUVC)?.getUsbDevice()
+        if (device != null) {
+            editor.putFloat(deviceSettingKey(KEY_RADIAL_COEFFICIENT, device), mRadialCoefficient)
+        }
+        editor.apply()
+    }
+
+    private fun updateRadialDistortionUi() {
+        val normalized = if (EffectRadialDistortion.MIN_COEFFICIENT == 0f) 0f
+        else (mRadialCoefficient / EffectRadialDistortion.MIN_COEFFICIENT).coerceIn(0f, 1f)
+        mViewBinding.distortionSlider.setValue(normalized)
+        mViewBinding.distortionValueTv.text = getString(
+            R.string.radial_coefficient_value,
+            mRadialCoefficient
+        )
+        mViewBinding.distortionSlider.contentDescription = getString(
+            R.string.radial_distortion_value_accessibility,
+            mRadialCoefficient
+        )
+    }
+
+    private fun loadRadialCoefficientForDevice(device: UsbDevice?) {
+        val preferences = userSettings()
+        val deviceKey = deviceSettingKey(KEY_RADIAL_COEFFICIENT, device)
+        val coefficient = if (device != null && preferences.contains(deviceKey)) {
+            preferences.getFloat(deviceKey, mRadialCoefficient)
+        } else {
+            preferences.getFloat(KEY_RADIAL_COEFFICIENT, mRadialCoefficient)
+        }
+        setRadialCoefficient(coefficient, persist = false)
+    }
+
+    private fun savePreferredCamera(device: UsbDevice) {
+        userSettings().edit()
+            .putInt(KEY_CAMERA_VENDOR_ID, device.vendorId)
+            .putInt(KEY_CAMERA_PRODUCT_ID, device.productId)
+            .apply()
+    }
+
+    private fun deviceSettingKey(base: String, device: UsbDevice?): String {
+        return if (device == null) base else "${base}_${device.vendorId}_${device.productId}"
+    }
+
+    private fun userSettings() = requireContext().getSharedPreferences(USER_SETTINGS_PREFS, 0)
+
     private fun isWorkshopAppearance(): Boolean = requireContext()
         .getSharedPreferences(MainActivity.APPEARANCE_PREFS, 0)
         .getInt(MainActivity.KEY_APPEARANCE, MainActivity.APPEARANCE_ATELIER) ==
@@ -1236,6 +1405,15 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     companion object {
         private const val STORAGE_PREFS = "media_storage"
         private const val KEY_MEDIA_FOLDER = "media_folder_uri"
+        private const val USER_SETTINGS_PREFS = "user_settings"
+        private const val KEY_CAPTURE_MODE = "capture_mode"
+        private const val KEY_RADIAL_COEFFICIENT = "radial_coefficient"
+        private const val KEY_RESOLUTION_WIDTH = "resolution_width"
+        private const val KEY_RESOLUTION_HEIGHT = "resolution_height"
+        private const val KEY_CAMERA_VENDOR_ID = "camera_vendor_id"
+        private const val KEY_CAMERA_PRODUCT_ID = "camera_product_id"
+        private const val CAPTURE_MODE_PHOTO = 0
+        private const val CAPTURE_MODE_VIDEO = 1
         private const val HARDWARE_BUTTON_PRESSED = 1
         private const val COMMENT_PREFS = "capture_comments"
         private const val KEY_CAPTURE_COMMENT = "current_comment"
