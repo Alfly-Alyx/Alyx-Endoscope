@@ -29,7 +29,10 @@ import kotlin.math.sin
  *
  * @author Created by jiangdg on 2021/12/27
  */
-class CameraRender(context: Context) : AbstractFboRender(context) {
+class CameraRender(
+    context: Context,
+    private val sourceAspectRatio: Float = 0f
+) : AbstractFboRender(context) {
     private var mStMatrixHandle: Int = -1
     private var mMVPMatrixHandle: Int = -1
     private var mStMatrix = FloatArray(16)
@@ -71,6 +74,31 @@ class CameraRender(context: Context) : AbstractFboRender(context) {
 
     fun setTransformMatrix(matrix: FloatArray) {
         this.mStMatrix = matrix
+    }
+
+    override fun setSize(width: Int, height: Int) {
+        super.setSize(width, height)
+        val targetAspect = width.toFloat() / height.coerceAtLeast(1)
+        var left = 0f
+        var right = 1f
+        var bottom = 0f
+        var top = 1f
+        if (sourceAspectRatio > targetAspect) {
+            val visible = targetAspect / sourceAspectRatio
+            left = (1f - visible) / 2f
+            right = 1f - left
+        } else if (sourceAspectRatio > 0f && sourceAspectRatio < targetAspect) {
+            val visible = sourceAspectRatio / targetAspect
+            bottom = (1f - visible) / 2f
+            top = 1f - bottom
+        }
+        mTriangleVertices.clear()
+        mTriangleVertices.put(floatArrayOf(
+            -1.0f, -1.0f, 0f, left, bottom,
+             1.0f, -1.0f, 0f, right, bottom,
+            -1.0f,  1.0f, 0f, left, top,
+             1.0f,  1.0f, 0f, right, top
+        )).position(0)
     }
 
     private fun setMVPMatrix(angle: Int): FloatArray {

@@ -122,7 +122,7 @@ class MainActivity : AppCompatActivity() {
     private fun setStatusBar() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val attributes = theme.obtainStyledAttributes(
-            intArrayOf(com.google.android.material.R.attr.colorSurface)
+            intArrayOf(com.google.android.material.R.attr.colorPrimaryVariant)
         )
         val systemBarColor = attributes.getColor(0, getColor(R.color.black))
         attributes.recycle()

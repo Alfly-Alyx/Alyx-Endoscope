@@ -11,7 +11,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
-        android:background="#E6000000"
+        android:background="?attr/colorPrimaryVariant"
         app:navigationIcon="@drawable/ic_arrow_back_alyx"
         app:navigationIconTint="@android:color/white"
         app:title="@string/media_viewer"

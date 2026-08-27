@@ -36,6 +36,7 @@ class CameraRequest private constructor() {
     var defaultRotateType: RotateType = RotateType.ANGLE_0
     var audioSource: AudioSource = AudioSource.SOURCE_AUTO
     var previewFormat: PreviewFormat = PreviewFormat.FORMAT_MJPEG
+    var outputAspectRatio: Float = 0f
 
     @kotlin.Deprecated("Deprecated since version 3.3.0")
     var cameraId: String = ""
@@ -84,6 +85,12 @@ class CameraRequest private constructor() {
          */
         fun setPreviewHeight(height: Int): Builder {
             mRequest.previewHeight = height
+            return this
+        }
+
+        /** Définit le ratio de sortie utilisé pour les photos et vidéos recadrées. */
+        fun setOutputAspectRatio(aspectRatio: Float): Builder {
+            mRequest.outputAspectRatio = aspectRatio
             return this
         }
 

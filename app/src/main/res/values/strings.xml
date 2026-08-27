@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name" translatable="false">Alyx Endoscope</string>
+    <string name="app_name" translatable="false">Endoscope</string>
     <string name="permission_tip">L’autorisation a été refusée. Ouvrez les paramètres de l’application pour l’accorder.</string>
-    <string name="resolution">Résolution</string>
+    <string name="resolution">Format</string>
     <string name="filters">Filtres</string>
     <string name="animations">Animations</string>
     <string name="photo">Photo</string>
@@ -25,7 +25,13 @@
     <string name="media_folder_selected">Dossier d’enregistrement : %1$s</string>
     <string name="media_folder_error">Impossible d’écrire dans le dossier sélectionné.</string>
     <string name="media_saved">Média enregistré dans %1$s</string>
-    <string name="resolution_title">Résolution de la caméra</string>
+    <string name="resolution_title">Choisir le format de l’image</string>
+    <string name="image_format_title">Format de l’image</string>
+    <string name="image_format_16_9">16:9 — Large</string>
+    <string name="image_format_3_2">3:2 — Photo</string>
+    <string name="image_format_4_3">4:3 — Standard</string>
+    <string name="image_format_1_1">1:1 — Carré</string>
+    <string name="image_format_applied">Format « %1$s » appliqué</string>
     <string name="choose_camera">Choisir la caméra</string>
     <string name="choose_theme">Choisir l’apparence</string>
     <string name="folder_short">Dossier</string>

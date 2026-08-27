@@ -1,23 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Alyx.Atelier" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#FFFF7A1A</item>
-        <item name="colorPrimaryVariant">#FF11161A</item>
-        <item name="colorSecondary">#FFFF7A1A</item>
-        <item name="colorSurface">#FF151A1E</item>
-        <item name="colorOnSurface">#FFF5F6F7</item>
-        <item name="android:colorBackground">#FF0B0E10</item>
+        <item name="colorPrimary">#FF0096AA</item>
+        <item name="colorPrimaryVariant">#FF194196</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorSecondary">#FF0096AA</item>
+        <item name="colorOnSecondary">#FFFFFFFF</item>
+        <item name="colorSurface">#FF111B21</item>
+        <item name="colorOnSurface">#FFFAFAFA</item>
+        <item name="android:colorBackground">#FF0B1014</item>
+        <item name="android:statusBarColor">#FF194196</item>
+        <item name="android:navigationBarColor">#FF194196</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>
 
     <style name="Theme.Alyx.Workshop" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#FFFF8A3D</item>
-        <item name="colorPrimaryVariant">#FF8F3B00</item>
-        <item name="colorSecondary">#FFFF8A3D</item>
-        <item name="colorSurface">#FF211B17</item>
-        <item name="colorOnSurface">#FFFFEDE2</item>
-        <item name="android:colorBackground">#FF17120F</item>
+        <item name="colorPrimary">#FF0096AA</item>
+        <item name="colorPrimaryVariant">#FF194196</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorSecondary">#FF0096AA</item>
+        <item name="colorOnSecondary">#FFFFFFFF</item>
+        <item name="colorSurface">#FF111B21</item>
+        <item name="colorOnSurface">#FFFAFAFA</item>
+        <item name="android:colorBackground">#FF0B1014</item>
+        <item name="android:statusBarColor">#FF194196</item>
+        <item name="android:navigationBarColor">#FF194196</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>

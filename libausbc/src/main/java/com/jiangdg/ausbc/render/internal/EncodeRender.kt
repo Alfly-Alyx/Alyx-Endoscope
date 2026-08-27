@@ -26,7 +26,10 @@ import com.jiangdg.ausbc.render.env.EGLEvn
  *
  * @author Created by jiangdg on 2021/12/27
  */
-class EncodeRender(context: Context): AbstractRender(context) {
+class EncodeRender(
+    context: Context,
+    private val sourceAspectRatio: Float
+): AbstractRender(context) {
 
     private var mEgl: EGLEvn? = null
 
@@ -43,6 +46,31 @@ class EncodeRender(context: Context): AbstractRender(context) {
     fun swapBuffers(timeStamp: Long) {
         mEgl?.setPresentationTime(timeStamp)
         mEgl?.swapBuffers()
+    }
+
+    override fun setSize(width: Int, height: Int) {
+        super.setSize(width, height)
+        val targetAspect = width.toFloat() / height.coerceAtLeast(1)
+        var left = 0f
+        var right = 1f
+        var bottom = 0f
+        var top = 1f
+        if (sourceAspectRatio > targetAspect) {
+            val visible = targetAspect / sourceAspectRatio
+            left = (1f - visible) / 2f
+            right = 1f - left
+        } else if (sourceAspectRatio < targetAspect) {
+            val visible = sourceAspectRatio / targetAspect
+            bottom = (1f - visible) / 2f
+            top = 1f - bottom
+        }
+        mTriangleVertices.clear()
+        mTriangleVertices.put(floatArrayOf(
+            -1.0f, -1.0f, 0f, left, bottom,
+             1.0f, -1.0f, 0f, right, bottom,
+            -1.0f,  1.0f, 0f, left, top,
+             1.0f,  1.0f, 0f, right, top
+        )).position(0)
     }
 
     override fun clear() {

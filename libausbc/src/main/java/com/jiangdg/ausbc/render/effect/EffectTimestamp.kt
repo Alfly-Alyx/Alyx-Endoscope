@@ -18,7 +18,8 @@ import kotlin.math.min
 class EffectTimestamp(
     context: Context,
     private val capturedAt: Long,
-    private val comment: String = ""
+    private val comment: String = "",
+    private val outputAspectRatio: Float = 0f
 ) : AbstractEffect(context) {
     private val watermarkTexture = IntArray(1)
     private var watermarkSampler = -1
@@ -85,18 +86,26 @@ class EffectTimestamp(
             style = Paint.Style.STROKE
             strokeWidth = (textSize * 0.10f).coerceAtLeast(3f)
         }
-        val commentLines = wrapComment(comment, fill, width * 0.72f).takeLast(MAX_COMMENT_LINES)
+        val sourceAspect = width.toFloat() / height
+        val visibleWidth = if (outputAspectRatio > 0f && sourceAspect > outputAspectRatio) {
+            height * outputAspectRatio
+        } else {
+            width.toFloat()
+        }
+        val visibleLeft = (width - visibleWidth) / 2f
+        val visibleRight = visibleLeft + visibleWidth
+        val commentLines = wrapComment(comment, fill, visibleWidth * 0.72f).takeLast(MAX_COMMENT_LINES)
         val lines = commentLines + listOf(date, time)
         val blockWidth = lines.maxOf(fill::measureText)
         val blockHeight = textSize * lines.size + lineGap * (lines.size - 1)
-        val right = width - padding
+        val right = visibleRight - padding
         val bottom = height - padding
         val background = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x82000000.toInt() }
         canvas.drawRoundRect(
             RectF(
                 right - blockWidth - padding,
                 bottom - blockHeight - padding * 0.55f,
-                width.toFloat(),
+                visibleRight,
                 height.toFloat()
             ),
             padding * 0.35f,

@@ -1,5 +1,20 @@
 # Versions
 
+## 0.12.0
+
+- Nom visible simplifié en « Endoscope » sur le bureau Android et dans l’application.
+- Identifiant interne `com.alyx.endoscope` conservé pour assurer la mise à jour de l’installation existante.
+- Nouvelle charte : bleu `#194196`, turquoise `#0096AA`, blanc et fond clair `#FAFAFA`.
+- Icône de l’application recolorée en turquoise à la place de l’orange.
+- Nouvelles captures nommées `Endoscope_…`, avec compatibilité maintenue pour les anciens clichés `Alyx_…`.
+- Indication de fréquence centrée au-dessus de l’aperçu.
+- Libellés Workshop uniformisés à la même taille, avec un compromis qui maintient « Commentaire » dans son bouton.
+- Positionnement vertical des libellés Workshop à mi-distance entre le bas de l’icône et le bas du bouton.
+- Remplacement des faibles résolutions par quatre formats d’image : 16:9, 3:2, 4:3 et 1:1 carré.
+- Conservation du flux haute définition 1280 × 720 et recadrage centré, sans étirement, dans l’aperçu, les photos et les vidéos.
+- Agrandissement de la fenêtre de caméra à toute la largeur disponible pour chaque format.
+- Conservation du format d’image choisi après fermeture, redémarrage ou mise à jour.
+
 ## 0.11.0
 
 - Ajout d’une réglette verticale de correction anti-fisheye dans Atelier et Workshop.

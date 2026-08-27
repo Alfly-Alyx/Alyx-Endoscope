@@ -39,6 +39,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** Multi-road camera client
  *
@@ -301,7 +302,15 @@ class MultiCameraClient(ctx: Context, callback: IDeviceConnectCallBack?) {
                     when (val cameraView = mCameraView) {
                         is IAspectRatio -> {
                             if (mCameraRequest!!.isAspectRatioShow) {
-                                cameraView.setAspectRatio(previewWidth, previewHeight)
+                                val outputAspect = mCameraRequest!!.outputAspectRatio
+                                if (outputAspect > 0f) {
+                                    cameraView.setAspectRatio(
+                                        (outputAspect * ASPECT_RATIO_SCALE).roundToInt(),
+                                        ASPECT_RATIO_SCALE
+                                    )
+                                } else {
+                                    cameraView.setAspectRatio(previewWidth, previewHeight)
+                                }
                             }
                             cameraView
                         }
@@ -334,7 +343,13 @@ class MultiCameraClient(ctx: Context, callback: IDeviceConnectCallBack?) {
                         } else {
                             mPreviewDataCbList
                         }
-                        mRenderManager = RenderManager(ctx, previewWidth, previewHeight, previewCb)
+                        mRenderManager = RenderManager(
+                            ctx,
+                            previewWidth,
+                            previewHeight,
+                            previewCb,
+                            mCameraRequest!!.outputAspectRatio
+                        )
                         mRenderManager?.startRenderScreen(screenWidth, screenHeight, surface, object : RenderManager.CameraSurfaceTextureListener {
                             override fun onSurfaceTextureAvailable(surfaceTexture: SurfaceTexture?) {
                                 if (surfaceTexture == null) {
@@ -472,8 +487,29 @@ class MultiCameraClient(ctx: Context, callback: IDeviceConnectCallBack?) {
             mContext.resources.configuration.orientation.let { orientation ->
                 orientation == Configuration.ORIENTATION_PORTRAIT
             }.also { isPortrait ->
-                mVideoProcess = H264EncodeProcessor(previewWidth, previewHeight, isNeedGLESRender, isPortrait)
+                val (encodeWidth, encodeHeight) = centeredCropSize(
+                    previewWidth,
+                    previewHeight,
+                    mCameraRequest?.outputAspectRatio ?: 0f
+                )
+                mVideoProcess = H264EncodeProcessor(encodeWidth, encodeHeight, isNeedGLESRender, isPortrait)
             }
+        }
+
+        private fun centeredCropSize(width: Int, height: Int, targetAspect: Float): Pair<Int, Int> {
+            if (width <= 0 || height <= 0 || targetAspect <= 0f) return Pair(width, height)
+            val sourceAspect = width.toFloat() / height
+            var cropWidth = width
+            var cropHeight = height
+            if (sourceAspect > targetAspect) {
+                cropWidth = (height * targetAspect).roundToInt()
+            } else if (sourceAspect < targetAspect) {
+                cropHeight = (width / targetAspect).roundToInt()
+            }
+            // MediaCodec exige des dimensions paires sur de nombreux appareils.
+            cropWidth -= cropWidth % 2
+            cropHeight -= cropHeight % 2
+            return Pair(cropWidth.coerceAtLeast(2), cropHeight.coerceAtLeast(2))
         }
 
         /**
@@ -983,9 +1019,12 @@ class MultiCameraClient(ctx: Context, callback: IDeviceConnectCallBack?) {
                 Logger.e(TAG, "start encode failed, input surface is null")
                 return
             }
-            mCameraRequest?.apply {
-                mRenderManager?.startRenderCodec(surface, previewWidth, previewHeight)
-            }
+            val processor = mVideoProcess as? H264EncodeProcessor ?: return
+            mRenderManager?.startRenderCodec(
+                surface,
+                processor.getEncodeWidth(),
+                processor.getEncodeHeight()
+            )
         }
 
         private fun getDefaultCameraRequest(): CameraRequest {
@@ -1007,6 +1046,7 @@ class MultiCameraClient(ctx: Context, callback: IDeviceConnectCallBack?) {
         private const val MSG_CAPTURE_STREAM_STOP = 0x07
         private const val DEFAULT_PREVIEW_WIDTH = 640
         private const val DEFAULT_PREVIEW_HEIGHT = 480
+        private const val ASPECT_RATIO_SCALE = 1000
         const val MAX_NV21_DATA = 5
         const val CAPTURE_TIMES_OUT_SEC = 3L
     }

@@ -48,7 +48,7 @@ object MediaRepository {
         read(context).sortedByDescending(MediaRecord::capturedAt)
     }
 
-    /** Imports older Alyx captures from the selected SAF folder into the app gallery. */
+    /** Imports current Endoscope captures and older Alyx captures into the app gallery. */
     fun importSelectedFolder(context: Context) = synchronized(lock) {
         val folderUri = context.getSharedPreferences(STORAGE_PREFS, 0)
             .getString(KEY_MEDIA_FOLDER, null)
@@ -59,7 +59,7 @@ object MediaRepository {
         tree.listFiles().forEach { file ->
             val name = file.name ?: return@forEach
             val type = file.type ?: mimeTypeFromName(name) ?: return@forEach
-            if (!file.isFile || !name.startsWith("Alyx_") ||
+            if (!file.isFile || CAPTURE_PREFIXES.none { name.startsWith(it) } ||
                 (!type.startsWith("image/") && !type.startsWith("video/"))) {
                 return@forEach
             }
@@ -74,12 +74,12 @@ object MediaRepository {
     }
 
     private fun timestampFromName(name: String): Long? {
-        Regex("^Alyx_(\\d{8}_\\d{6}_\\d{3})").find(name)?.groupValues?.getOrNull(1)?.let {
+        Regex("^(?:Endoscope|Alyx)_(\\d{8}_\\d{6}_\\d{3})").find(name)?.groupValues?.getOrNull(1)?.let {
             return runCatching {
                 SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).apply { isLenient = false }.parse(it)?.time
             }.getOrNull()
         }
-        Regex("^Alyx_(\\d{13})").find(name)?.groupValues?.getOrNull(1)?.toLongOrNull()?.let {
+        Regex("^(?:Endoscope|Alyx)_(\\d{13})").find(name)?.groupValues?.getOrNull(1)?.toLongOrNull()?.let {
             return it
         }
         return null
@@ -103,7 +103,7 @@ object MediaRepository {
                             uri = item.getString("uri"),
                             mimeType = item.optString("mimeType", "image/jpeg"),
                             capturedAt = item.optLong("capturedAt", 0L),
-                            displayName = item.optString("displayName", "Média Alyx"),
+                            displayName = item.optString("displayName", "Média Endoscope"),
                             comment = item.optString("comment", ""),
                             hasEmbeddedStamp = item.optBoolean("hasEmbeddedStamp", false),
                             embeddedComment = item.optString("embeddedComment", "")
@@ -131,4 +131,6 @@ object MediaRepository {
         }
         context.getSharedPreferences(PREFS, 0).edit().putString(KEY_RECORDS, array.toString()).apply()
     }
+
+    private val CAPTURE_PREFIXES = listOf("Endoscope_", "Alyx_")
 }

@@ -55,7 +55,8 @@ class RenderManager(
     context: Context,
     private val surfaceWidth: Int,         // render surface width
     private val surfaceHeight: Int,        // render surface height
-    private val mPreviewDataCbList: CopyOnWriteArrayList<IPreviewDataCallBack>?=null
+    private val mPreviewDataCbList: CopyOnWriteArrayList<IPreviewDataCallBack>?=null,
+    private val outputAspectRatio: Float = 0f
 ) : SurfaceTexture.OnFrameAvailableListener, Handler.Callback {
     private var mPreviewByteBuffer: ByteBuffer? = null
     private var mEOSTextureId: Int? = null
@@ -96,7 +97,8 @@ class RenderManager(
     }
 
     init {
-        this.mCameraRender = CameraRender(context)
+        val sourceAspect = surfaceWidth.toFloat() / surfaceHeight.coerceAtLeast(1)
+        this.mCameraRender = CameraRender(context, sourceAspect)
         this.mScreenRender = ScreenRender(context)
         this.mCaptureRender = CaptureRender(context)
         Logger.i(TAG, "create RenderManager, Open ES version is ${Utils.getGLESVersion(context)}")
@@ -375,7 +377,12 @@ class RenderManager(
                     (message.obj as Pair<*, *>).apply {
                         val shareContext = first as EGLContext
                         val inputSurface = second as Surface
-                        mEncodeRender = EncodeRender(mContext)
+                        val sourceAspect = if (mWidth > 0 && mHeight > 0) {
+                            mWidth.toFloat() / mHeight
+                        } else {
+                            surfaceWidth.toFloat() / surfaceHeight.coerceAtLeast(1)
+                        }
+                        mEncodeRender = EncodeRender(mContext, sourceAspect)
                         mEncodeRender?.initEGLEvn(shareContext)
                         mEncodeRender?.setupSurface(inputSurface)
                         mEncodeRender?.initGLES()
@@ -445,10 +452,11 @@ class RenderManager(
         var fos: FileOutputStream? = null
         try {
             fos = FileOutputStream(path)
-            GLBitmapUtils.transFrameBufferToBitmap(mFBOBufferId, width, height).apply {
-                compress(Bitmap.CompressFormat.JPEG, 100, fos)
-                recycle()
-            }
+            val source = GLBitmapUtils.transFrameBufferToBitmap(mFBOBufferId, width, height)
+            val output = centerCropBitmap(source, outputAspectRatio)
+            output.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+            if (output !== source) source.recycle()
+            output.recycle()
         } catch (e: IOException) {
             mMainHandler.post {
                 mCaptureDataCb?.onError(e.localizedMessage)
@@ -487,6 +495,19 @@ class RenderManager(
         mCaptureState.set(false)
         if (Utils.debugCamera) {
             Logger.i(TAG, "captureImageInternal save path = $path")
+        }
+    }
+
+    private fun centerCropBitmap(source: Bitmap, targetAspect: Float): Bitmap {
+        if (targetAspect <= 0f || source.width <= 0 || source.height <= 0) return source
+        val sourceAspect = source.width.toFloat() / source.height
+        if (kotlin.math.abs(sourceAspect - targetAspect) < 0.002f) return source
+        return if (sourceAspect > targetAspect) {
+            val cropWidth = (source.height * targetAspect).toInt().coerceIn(1, source.width)
+            Bitmap.createBitmap(source, (source.width - cropWidth) / 2, 0, cropWidth, source.height)
+        } else {
+            val cropHeight = (source.width / targetAspect).toInt().coerceIn(1, source.height)
+            Bitmap.createBitmap(source, 0, (source.height - cropHeight) / 2, source.width, cropHeight)
         }
     }
 

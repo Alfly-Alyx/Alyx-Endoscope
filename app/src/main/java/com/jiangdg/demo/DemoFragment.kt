@@ -26,6 +26,7 @@ import android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
 import android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 import android.net.Uri
 import android.graphics.Bitmap
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.hardware.usb.UsbDevice
@@ -78,6 +79,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.*
+import kotlin.math.roundToInt
 
 /** CameraFragment Usage Demo
  *
@@ -95,6 +97,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     private var mCaptureComment = ""
     private var mRadialDistortionEffect: EffectRadialDistortion? = null
     private var mRadialCoefficient = 0f
+    private var mCameraPreviewView: AspectRatioTextureView? = null
 
     private val folderPicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri ?: return@registerForActivityResult
@@ -200,7 +203,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     private fun attachDistortionOverlayToPreview() {
         val container = mViewBinding.cameraViewContainer
         val overlay = mViewBinding.distortionOverlayLayout
-        val preview = container.children.firstOrNull() ?: return
+        val preview = mCameraPreviewView ?: container.children.firstOrNull() ?: return
         (overlay.parent as? ViewGroup)?.removeView(overlay)
         container.addView(
             overlay,
@@ -213,9 +216,23 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
         fun matchPreviewBounds() {
             if (preview.width <= 0 || preview.height <= 0) return
+            val targetAspect = selectedImageFormat().aspectRatio
+            val sourceAspect = preview.width.toFloat() / preview.height
+            val visibleWidth: Int
+            val visibleHeight: Int
+            if (sourceAspect > targetAspect) {
+                visibleWidth = (preview.height * targetAspect).roundToInt().coerceAtMost(preview.width)
+                visibleHeight = preview.height
+            } else {
+                visibleWidth = preview.width
+                visibleHeight = (preview.width / targetAspect).roundToInt().coerceAtMost(preview.height)
+            }
+            val left = (preview.width - visibleWidth) / 2
+            val top = (preview.height - visibleHeight) / 2
+            preview.clipBounds = Rect(left, top, left + visibleWidth, top + visibleHeight)
             overlay.layoutParams = FrameLayout.LayoutParams(
-                preview.width,
-                preview.height,
+                visibleWidth,
+                visibleHeight,
                 Gravity.CENTER
             )
             overlay.bringToFront()
@@ -231,6 +248,14 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             .getInt(MainActivity.KEY_APPEARANCE, MainActivity.APPEARANCE_ATELIER)
         val surface = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorSurface)
         val accent = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorPrimary)
+        val brandBlue = MaterialColors.getColor(
+            mViewBinding.root,
+            com.google.android.material.R.attr.colorPrimaryVariant
+        )
+        val onPrimary = MaterialColors.getColor(
+            mViewBinding.root,
+            com.google.android.material.R.attr.colorOnPrimary
+        )
         val onSurface = MaterialColors.getColor(mViewBinding.root, com.google.android.material.R.attr.colorOnSurface)
         val outline = ColorUtils.setAlphaComponent(onSurface, 38)
         val density = resources.displayMetrics.density
@@ -260,18 +285,25 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         )
         panel(mViewBinding.cameraViewContainer)
         panel(mViewBinding.controlPanelLayout, if (selected == MainActivity.APPEARANCE_ATELIER) 16f else cornerDp)
-        mViewBinding.headerBg.setBackgroundColor(
-            MaterialColors.getColor(mViewBinding.root, android.R.attr.colorBackground)
-        )
+        mViewBinding.headerBg.setBackgroundColor(brandBlue)
 
         mViewBinding.headerTitleTv.text = getString(R.string.app_name)
+        mViewBinding.headerTitleTv.setTextColor(onPrimary)
         val workshop = selected == MainActivity.APPEARANCE_WORKSHOP
-        val regularTint = ColorStateList.valueOf(onSurface)
         val accentTint = ColorStateList.valueOf(accent)
-        mViewBinding.settingsBtn.imageTintList = if (workshop) accentTint else regularTint
-        mViewBinding.cameraTypeBtn.imageTintList = if (workshop) accentTint else regularTint
-        mViewBinding.themeBtn.imageTintList = if (workshop) accentTint else regularTint
-        mViewBinding.resolutionBtn.imageTintList = if (workshop) accentTint else regularTint
+        val headerTint = ColorStateList.valueOf(onPrimary)
+        mViewBinding.settingsBtn.imageTintList = accentTint
+        mViewBinding.cameraTypeBtn.imageTintList = accentTint
+        mViewBinding.themeBtn.imageTintList = accentTint
+        mViewBinding.resolutionBtn.imageTintList = accentTint
+        mViewBinding.atelierCommentBtn.imageTintList = accentTint
+        listOf(
+            mViewBinding.settingsLabelTv,
+            mViewBinding.cameraLabelTv,
+            mViewBinding.themeLabelTv,
+            mViewBinding.resolutionLabelTv,
+            mViewBinding.atelierCommentLabelTv
+        ).forEach { it.setTextColor(accent) }
         mViewBinding.galleryBtn.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(surface)
@@ -302,7 +334,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
             mViewBinding.headerSettingsBtn.apply {
                 visibility = View.VISIBLE
                 setImageResource(R.drawable.ic_palette)
-                imageTintList = regularTint
+                imageTintList = headerTint
                 background = null
             }
             val actionCards = listOf(
@@ -333,7 +365,13 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 mViewBinding.resolutionLabelTv
             ).forEach {
                 it.alpha = 1f
-                it.textSize = if (it === mViewBinding.themeLabelTv) 10f else 11f
+                it.textSize = TOOLBAR_LABEL_SIZE_SP
+                (it.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { params ->
+                    // Centre le libellé dans l'espace compris entre le bas de
+                    // l'icône et le bord inférieur de sa carte Workshop.
+                    params.bottomMargin = (WORKSHOP_LABEL_BOTTOM_MARGIN_DP * density).roundToInt()
+                    it.layoutParams = params
+                }
             }
             mViewBinding.cameraViewContainer.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
@@ -364,6 +402,18 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
                 contentDescription = getString(R.string.choose_theme)
             }
             mViewBinding.themeLabelTv.setText(R.string.theme_short)
+            listOf(
+                mViewBinding.settingsLabelTv,
+                mViewBinding.cameraLabelTv,
+                mViewBinding.themeLabelTv,
+                mViewBinding.resolutionLabelTv,
+                mViewBinding.atelierCommentLabelTv
+            ).forEach {
+                (it.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams)?.let { params ->
+                    params.bottomMargin = (ATELIER_LABEL_BOTTOM_MARGIN_DP * density).roundToInt()
+                    it.layoutParams = params
+                }
+            }
             listOf(
                 mViewBinding.folderActionCard,
                 mViewBinding.cameraActionCard,
@@ -681,13 +731,12 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     }
 
     override fun getCameraRequest(): CameraRequest {
-        val device = (getCurrentCamera() as? CameraUVC)?.getUsbDevice()
-        val preferences = userSettings()
-        val width = preferences.getInt(deviceSettingKey(KEY_RESOLUTION_WIDTH, device), 0)
-        val height = preferences.getInt(deviceSettingKey(KEY_RESOLUTION_HEIGHT, device), 0)
         return CameraRequest.Builder()
-            .setPreviewWidth(width)
-            .setPreviewHeight(height)
+            // Toujours partir du meilleur flux stable de cet endoscope. Les formats
+            // proposés à l'utilisateur sont ensuite obtenus par recadrage centré.
+            .setPreviewWidth(HIGH_QUALITY_PREVIEW_WIDTH)
+            .setPreviewHeight(HIGH_QUALITY_PREVIEW_HEIGHT)
+            .setOutputAspectRatio(selectedImageFormat().aspectRatio)
             .setRenderMode(CameraRequest.RenderMode.OPENGL)
             .setDefaultRotateType(RotateType.ANGLE_0)
             .setAudioSource(CameraRequest.AudioSource.NONE)
@@ -711,7 +760,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     }
 
     override fun getCameraView(): IAspectRatio {
-        return AspectRatioTextureView(requireContext())
+        return AspectRatioTextureView(requireContext()).also { mCameraPreviewView = it }
     }
 
     override fun getCameraViewContainer(): ViewGroup {
@@ -819,7 +868,12 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
     private fun applyTimestampEffect(capturedAt: Long, comment: String) {
         removeTimestampEffect()
-        mTimestampEffect = EffectTimestamp(requireContext(), capturedAt, comment).also(::addRenderEffect)
+        mTimestampEffect = EffectTimestamp(
+            requireContext(),
+            capturedAt,
+            comment,
+            selectedImageFormat().aspectRatio
+        ).also(::addRenderEffect)
     }
 
     private fun removeTimestampEffect() {
@@ -968,44 +1022,35 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
 
     @SuppressLint("CheckResult")
     private fun showResolutionDialog() {
-        getAllPreviewSizes().let { previewSizes ->
-            if (previewSizes.isNullOrEmpty()) {
-                ToastUtils.show(R.string.preview_size_error)
-                return
-            }
-            val sortedSizes = previewSizes.distinctBy { it.width to it.height }
-                .sortedByDescending { it.width.toLong() * it.height }
-            val list = arrayListOf<String>()
-            var selectedIndex: Int = -1
-            for (index in sortedSizes.indices) {
-                val w = sortedSizes[index].width
-                val h = sortedSizes[index].height
-                getCurrentPreviewSize()?.apply {
-                    if (width == w && height == h) {
-                        selectedIndex = index
-                    }
-                }
-                list.add("$w x $h")
-            }
-            MaterialDialog(requireContext()).show {
-                title(R.string.resolution_title)
-                listItemsSingleChoice(
-                    items = list,
-                    initialSelection = selectedIndex
-                ) { dialog, index, text ->
-                    if (selectedIndex == index) {
-                        return@listItemsSingleChoice
-                    }
-                    val selectedSize = sortedSizes[index]
-                    val device = (getCurrentCamera() as? CameraUVC)?.getUsbDevice()
-                    userSettings().edit()
-                        .putInt(deviceSettingKey(KEY_RESOLUTION_WIDTH, device), selectedSize.width)
-                        .putInt(deviceSettingKey(KEY_RESOLUTION_HEIGHT, device), selectedSize.height)
-                        .apply()
-                    updateResolution(selectedSize.width, selectedSize.height)
-                }
+        val formats = imageFormats()
+        val selectedId = selectedImageFormat().id
+        val selectedIndex = formats.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+        MaterialDialog(requireContext()).show {
+            title(R.string.image_format_title)
+            listItemsSingleChoice(
+                items = formats.map { getString(it.labelRes) },
+                initialSelection = selectedIndex
+            ) { dialog, index, _ ->
+                dialog.dismiss()
+                val format = formats[index]
+                if (format.id == selectedId) return@listItemsSingleChoice
+                userSettings().edit().putInt(KEY_IMAGE_FORMAT, format.id).commit()
+                ToastUtils.show(getString(R.string.image_format_applied, getString(format.labelRes)))
+                requireActivity().recreate()
             }
         }
+    }
+
+    private fun imageFormats() = listOf(
+        ImageFormat(FORMAT_16_9, R.string.image_format_16_9, 16f / 9f),
+        ImageFormat(FORMAT_3_2, R.string.image_format_3_2, 3f / 2f),
+        ImageFormat(FORMAT_4_3, R.string.image_format_4_3, 4f / 3f),
+        ImageFormat(FORMAT_1_1, R.string.image_format_1_1, 1f)
+    )
+
+    private fun selectedImageFormat(): ImageFormat {
+        val selectedId = userSettings().getInt(KEY_IMAGE_FORMAT, FORMAT_16_9)
+        return imageFormats().firstOrNull { it.id == selectedId } ?: imageFormats().first()
     }
 
     private fun selectedMediaFolderUri(): Uri? {
@@ -1021,7 +1066,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     ): String? {
         if (selectedMediaFolderUri() == null) return null
         val directory = File(requireContext().cacheDir, "media").apply { mkdirs() }
-        val baseName = "Alyx_${MediaRepository.fileNameDate(capturedAt)}"
+        val baseName = "Endoscope_${MediaRepository.fileNameDate(capturedAt)}"
         return File(directory, if (extensionAddedByLibrary) baseName else "$baseName.$extension").absolutePath
     }
 
@@ -1403,6 +1448,8 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
     }
 
     companion object {
+        private data class ImageFormat(val id: Int, val labelRes: Int, val aspectRatio: Float)
+
         private const val STORAGE_PREFS = "media_storage"
         private const val KEY_MEDIA_FOLDER = "media_folder_uri"
         private const val USER_SETTINGS_PREFS = "user_settings"
@@ -1410,6 +1457,7 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         private const val KEY_RADIAL_COEFFICIENT = "radial_coefficient"
         private const val KEY_RESOLUTION_WIDTH = "resolution_width"
         private const val KEY_RESOLUTION_HEIGHT = "resolution_height"
+        private const val KEY_IMAGE_FORMAT = "image_format"
         private const val KEY_CAMERA_VENDOR_ID = "camera_vendor_id"
         private const val KEY_CAMERA_PRODUCT_ID = "camera_product_id"
         private const val CAPTURE_MODE_PHOTO = 0
@@ -1418,6 +1466,15 @@ class DemoFragment : CameraFragment(), View.OnClickListener, CaptureMediaView.On
         private const val COMMENT_PREFS = "capture_comments"
         private const val KEY_CAPTURE_COMMENT = "current_comment"
         private const val MAX_CAPTURE_COMMENT_LENGTH = 120
+        private const val HIGH_QUALITY_PREVIEW_WIDTH = 1280
+        private const val HIGH_QUALITY_PREVIEW_HEIGHT = 720
+        private const val FORMAT_16_9 = 0
+        private const val FORMAT_3_2 = 1
+        private const val FORMAT_4_3 = 2
+        private const val FORMAT_1_1 = 3
+        private const val TOOLBAR_LABEL_SIZE_SP = 9.5f
+        private const val WORKSHOP_LABEL_BOTTOM_MARGIN_DP = 17f
+        private const val ATELIER_LABEL_BOTTOM_MARGIN_DP = 5f
         private const val TAG  = "DemoFragment"
         private const val WHAT_START_TIMER = 0x00
         private const val WHAT_STOP_TIMER = 0x01

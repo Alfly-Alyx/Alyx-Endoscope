@@ -303,6 +303,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="5dp"
+        android:maxLines="1"
         android:text="@string/theme_short"
         android:textColor="?attr/colorOnSurface"
         android:textSize="11sp"
@@ -514,10 +515,11 @@
         android:id="@+id/frameRateTv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
         android:layout_marginTop="12dp"
+        android:gravity="center"
         android:textColor="?attr/colorOnSurface"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/cameraViewContainer"
+        app:layout_constraintStart_toStartOf="@id/cameraViewContainer"
         app:layout_constraintTop_toTopOf="@+id/cameraViewContainer" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

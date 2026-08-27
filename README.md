@@ -1,13 +1,14 @@
-# Alyx Endoscope
+# Endoscope
 
-Alyx Endoscope est une application Android destinée à l'utilisation d'endoscopes et de caméras USB compatibles UVC. La version **0.11.0** privilégie une interface simple, lisible et adaptée automatiquement au thème clair ou sombre du système.
+Endoscope est une application Android destinée à l'utilisation d'endoscopes et de caméras USB compatibles UVC. La version **0.12.0** adopte une charte bleu et turquoise tout en conservant l’identifiant interne `com.alyx.endoscope`.
 
 ## Fonctionnalités
 
 - aperçu en direct d'une caméra USB ;
 - prise de photos et enregistrement vidéo, sans mode audio ;
 - choix de la caméra depuis l'icône dédiée de la barre supérieure ;
-- sélection de la résolution et du dossier de destination ;
+- choix du format d’image 16:9, 3:2, 4:3 ou 1:1 et du dossier de destination ;
+- conservation du flux haute définition 1280 × 720, avec recadrage centré sans étirement pour les formats plus étroits ;
 - correction anti-fisheye manuelle et en temps réel par coefficient de distorsion radiale ;
 - deux interfaces sélectionnables : **Atelier** et **Workshop** ;
 - prise de photo ou démarrage/arrêt d’une vidéo depuis le bouton physique des endoscopes UVC compatibles ;
@@ -40,7 +41,7 @@ Pour produire l'APK de distribution locale :
 
 ## Origine et remerciements
 
-Alyx Endoscope est inspirée de l'application libre [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera), créée par [jiangdongguo](https://github.com/jiangdongguo). Ce projet conserve et adapte une partie de sa base technique de gestion des caméras USB/UVC.
+Endoscope est inspirée de l'application libre [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera), créée par [jiangdongguo](https://github.com/jiangdongguo). Ce projet conserve et adapte une partie de sa base technique de gestion des caméras USB/UVC.
 
 Merci à son auteur et aux contributeurs du projet d'origine pour leur travail.
 
