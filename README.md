@@ -1,50 +1,55 @@
 # Endoscope
 
-Endoscope est une application Android destinée à l'utilisation d'endoscopes et de caméras USB compatibles UVC. La version **0.12.0** adopte une charte bleu et turquoise tout en conservant l’identifiant interne `com.alyx.endoscope`.
+Endoscope is an Android application for USB endoscopes and other UVC-compatible cameras. Version **0.12.0** provides a focused portrait interface for inspection work while keeping the existing internal package name, `com.alyx.endoscope`, so installed versions can be upgraded without losing user settings.
 
-## Fonctionnalités
+## Features
 
-- aperçu en direct d'une caméra USB ;
-- prise de photos et enregistrement vidéo, sans mode audio ;
-- choix de la caméra depuis l'icône dédiée de la barre supérieure ;
-- choix du format d’image 16:9, 3:2, 4:3 ou 1:1 et du dossier de destination ;
-- conservation du flux haute définition 1280 × 720, avec recadrage centré sans étirement pour les formats plus étroits ;
-- correction anti-fisheye manuelle et en temps réel par coefficient de distorsion radiale ;
-- deux interfaces sélectionnables : **Atelier** et **Workshop** ;
-- prise de photo ou démarrage/arrêt d’une vidéo depuis le bouton physique des endoscopes UVC compatibles ;
-- incrustation jaune de la date, de l’heure et d’un commentaire dans les captures ;
-- galerie dédiée aux clichés Endoscope avec commentaires modifiables ;
-- conservation des réglages utilisateur après fermeture ou mise à jour ;
-- luminosité de l’écran automatiquement maximale pendant l’utilisation de l’application ;
-- adaptation automatique au thème clair ou sombre du système ;
-- prise en charge des appareils `armeabi-v7a` et `arm64-v8a`.
+- Live preview from a USB UVC endoscope or camera.
+- Photo capture and video recording without audio.
+- Support for compatible physical capture buttons on endoscope handles.
+- Four output formats: **16:9**, **3:2**, **4:3**, and **1:1**.
+- High-quality 1280 × 720 camera input with centered, distortion-free cropping for narrower formats.
+- Manual real-time radial distortion correction for reducing the fisheye effect.
+- Two selectable interfaces: **Atelier** and **Workshop**.
+- Yellow comments, date, and time embedded directly into photos and videos.
+- A dedicated Endoscope gallery with editable comments.
+- A user-selectable destination folder for captured media.
+- Persistent user preferences across application restarts and upgrades.
+- Automatic maximum screen brightness while the application is open, followed by restoration of the previous brightness.
+- Light and dark system theme support.
+- Portrait orientation lock.
+- Support for `armeabi-v7a` and `arm64-v8a` devices.
 
-## Prérequis
+## Requirements
 
-- Android 9 ou version ultérieure ;
-- téléphone ou tablette compatible USB OTG ;
-- caméra ou endoscope USB compatible UVC.
+- Android 9 (API 28) or later.
+- A phone or tablet with USB OTG support.
+- A UVC-compatible USB endoscope or camera.
 
-## Compilation
+## Build
 
-Le projet nécessite Android Studio avec un JDK 17 et le SDK Android 36.
+The project requires Android Studio, JDK 17, and Android SDK 36.
+
+Build a debug APK on Windows:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
 ```
 
-Pour produire l'APK de distribution locale :
+Build a release APK:
 
 ```powershell
 .\gradlew.bat :app:assembleRelease
 ```
 
-## Origine et remerciements
+Generated APK files are placed under `app/build/outputs/apk/`.
 
-Endoscope est inspirée de l'application libre [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera), créée par [jiangdongguo](https://github.com/jiangdongguo). Ce projet conserve et adapte une partie de sa base technique de gestion des caméras USB/UVC.
+## Project origin
 
-Merci à son auteur et aux contributeurs du projet d'origine pour leur travail.
+Endoscope is based on the open-source [AndroidUSBCamera](https://github.com/jiangdongguo/AndroidUSBCamera) project by [jiangdongguo](https://github.com/jiangdongguo). This application retains and adapts part of its USB/UVC camera foundation for a dedicated endoscope workflow.
 
-## Licence
+Thanks to the original author and contributors for their work.
 
-Ce projet est distribué sous licence Apache 2.0. Consultez le fichier [LICENSE](LICENSE) pour les conditions complètes.
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
